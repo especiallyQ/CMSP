@@ -6,8 +6,6 @@ const main = resolve => require(['@/views/index/index'], resolve);
 const home = resolve => require(['@/views/home/home'], resolve);
 const accountInfo = resolve => require(['@/views/account/accountInfo'], resolve);
 const groupInfo = resolve => require(['@/views/account/groupInfo'], resolve);
-const chainOrgMgmt = resolve => require(['@/views/chainOrgMgmt/index'], resolve);
-const chainOrgDetail = resolve => require(['@/views/chainOrgMgmt/detail'], resolve);
 const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
 
@@ -44,19 +42,6 @@ const routes = [{
         path: '/accountInfo', component: accountInfo, name: 'accountMgmt', nameKey: 'accountManagement', menuShow: true, meta: { requireAuth: true }
     }, {
         path: '/groupInfo', component: groupInfo, name: 'groupMgmt', nameKey: 'groupManagement', menuShow: true, meta: { requireAuth: true }
-    }]
-}, {
-    path: '/main',
-    name: 'main',
-    component: main,
-    leaf: true,
-    nameKey: 'chainOrgManagement',
-    menuShow: true,
-    iconCls: 'cmsp-icon-qukuai sidebar-icon',
-    children: [{
-        path: '/chainOrgMgmt', component: chainOrgMgmt, name: 'orgMgmt', nameKey: 'chainOrgMgmt', menuShow: true, meta: { requireAuth: true }
-    }, {
-        path: '/chainOrgDetail/:id', component: chainOrgDetail, name: 'orgDetail', nameKey: 'chainOrgDetail', menuShow: false, meta: { requireAuth: true }
     }]
 }, {
     path: '/',

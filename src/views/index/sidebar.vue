@@ -94,7 +94,6 @@ export default {
             list.forEach((item => {
                 // 主菜单国际化
                 item.name = {
-                    'chainOrgManagement': this.$t('title.chainOrgManagement'),
                     'accountManagement': this.$t('title.accountManagement'),
                     'noticeCenter': this.$t('title.noticeCenter')
                 }[item.nameKey];
@@ -106,7 +105,6 @@ export default {
                             'dataOverview': this.$t('title.dataOverview'),
                             'chainOrgMgmt': this.$t('title.chainOrgManagement'),
                             'accountManagement': this.$t('title.accountManagement'),
-                            'groupManagement': this.$t('title.groupManagement'),
                             'message': this.$t('title.message'),
                             'backlog': this.$t('title.backlog')
                         }[it.nameKey];
@@ -170,7 +168,6 @@ export default {
                     'login': false,
                     'main': false,
                     'dataOverview': true,
-                    'chainOrgManagement': true,
                     'accountManagement': true,
                     'noticeCenter': true
                 }[item.nameKey] || false;
@@ -182,7 +179,6 @@ export default {
                             'dataOverview': true,
                             'chainOrgMgmt': true,
                             'accountManagement': true,
-                            'groupManagement': true,
                             'message': true,
                             'backlog': this.role === 'PU_Admin'
                         }[it.nameKey] || false;
