@@ -789,6 +789,8 @@ let errCode = {
     }
 };
 
+export default errCode;
+
 export function chooseLang(code, value) {
     let lang = localStorage.getItem('lang');
     let message = errCode[code][lang];
