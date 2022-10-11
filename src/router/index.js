@@ -8,6 +8,7 @@ const accountInfo = resolve => require(['@/views/account/accountInfo'], resolve)
 const groupInfo = resolve => require(['@/views/account/groupInfo'], resolve);
 const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
+const contractTemplate = resolve => require(['@/views/contract/index'], resolve);
 
 Vue.use(Router);
 const routes = [{
@@ -55,6 +56,17 @@ const routes = [{
         path: '/message', component: message, name: 'message', nameKey: 'message', menuShow: true, meta: { requireAuth: true }
     }, {
         path: '/backlog', component: backlog, name: 'backlog', nameKey: 'backlog', menuShow: true, meta: { requireAuth: true }
+    }]
+},{
+    path:'/',
+    component: main,
+    name: 'main',
+    nameKey: 'contractTemplate',
+    leaf:true,
+    menuShow: true,
+    iconCls: 'cmsp-icon-qukuailian4 sidebar-icon',
+    children: [{
+        path: '/contractTemplate', component: contractTemplate, name: 'contractTemplate', nameKey: 'contractTemplate', menuShow: true,meta :{requireAuth: false}
     }]
 }];
 

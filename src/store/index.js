@@ -3,6 +3,7 @@ import Vuex from 'vuex';
 import { getLanguage } from '@/lang/index';
 import Cookies from 'js-cookie';
 import chain from './modules/chain'
+import contractTemplate from './modules/contractTemplate'
 
 Vue.use(Vuex)
 
@@ -40,6 +41,7 @@ export default new Vuex.Store({
         }
     },
     modules: {
-        chain
+        chain,
+        contractTemplate
     }
 })
