@@ -2,6 +2,7 @@ import { queryContractTemplateList } from "../../util/api"
 
 import storageKeys from '../../util/storageKeys/contractTemplateStorageKey'
 import mutationsKeys from '../../util/storeKeys/contractTemplate/mutationsKeys'
+import commonKeys from '../../util/storeKeys/contractTemplate/commonKeys'
 
 //合约模板列表（复杂类型数据）短期持久化
 function getStorageComplexTypeData(storageKey) {
@@ -11,7 +12,6 @@ function getStorageComplexTypeData(storageKey) {
 function setStorageComplexTypeDate(storageKey, data) {
     sessionStorage.setItem(storageKey, JSON.stringify(data))
 }
-
 
 const state = () => {
     return {
@@ -28,6 +28,13 @@ const mutations = {
 }
 
 
+/**
+ * 
+ * 
+ * 
+ * @param {array} arr 数组
+ * @param {boolean} 
+ */
 let contractTemplateParameter = {
     requestData: {
         pageNumber: 1,
@@ -44,7 +51,10 @@ const actions = {
         try{
             const { data } = await queryContractTemplateList(requestData, requiredData)
 
-            context.commit(mutationsKeys.SET_CONTRACT_TEMPLATE_LIST, data)
+            context.commit(mutationsKeys.SET_CONTRACT_TEMPLATE_LIST, {
+                data,
+                timeout: Date.now() + commonKeys.MAX_AGE
+            })
 
         }catch(err) {
             return Promise.reject(err)

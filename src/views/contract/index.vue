@@ -42,9 +42,24 @@ export default {
     },
     storageDataIsEmpty(keys){
       return sessionStorage.getItem(keys) ? false : true
+    },
+    storageDateIsTimeout(keys){
+      if(!this.storageDataIsEmpty(keys)){
+        let { timeout } = JSON.parse(sessionStorage.getItem(keys))
+
+        if(timeout){
+          let nowTime = Date.now()
+          return nowTime >= Number(timeout)
+        }
+      }
+      return true
     }
   },
   created(){
+    // 过期更新，有效期60秒
+    if(this.storageDateIsTimeout(storageKeys.CONTRACT_TEMPLATE_DATA)){
+      this.getContractTemplateList()
+    }
     if(this.storageDataIsEmpty(storageKeys.CONTRACT_TEMPLATE_DATA)){
       this.getContractTemplateList()
     }
