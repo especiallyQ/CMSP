@@ -25,6 +25,7 @@
 import ContentHead from "@/components/contentHead";
 import dispatchKeys from '@/util/storeKeys/contractTemplate/dispatchKeys'
 import storageKeys from '@/util/storageKeys/contractTemplateStorageKey'
+import { objectIsEmpty } from '@/util/util'
 export default {
   name: "contractTemplate",
   components: {
