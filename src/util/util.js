@@ -1,7 +1,5 @@
 "use strict"
 
-import { object } from "underscore";
-
 /**
  * 长整形时间戳转换为字符串
  *

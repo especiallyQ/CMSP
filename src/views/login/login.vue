@@ -156,7 +156,6 @@ export default {
       this.authToken = "";
       getPictureCheckCode()
         .then((res) => {
-          console.log(res);
           if (res.data.code === 0) {
             this.codeUrl = `data:image/png;base64,${res.data.data.base64Image}`;
             this.authToken = res.data.data.token;
