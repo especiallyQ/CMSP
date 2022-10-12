@@ -95,7 +95,8 @@ export default {
                 // 主菜单国际化
                 item.name = {
                     'accountManagement': this.$t('title.accountManagement'),
-                    'noticeCenter': this.$t('title.noticeCenter')
+                    'noticeCenter': this.$t('title.noticeCenter'),
+                    'depositoryTitle': this.$t('title.depositoryTitle'),
                 }[item.nameKey];
 
                 // 子菜单国际化
@@ -106,7 +107,8 @@ export default {
                             'chainOrgMgmt': this.$t('title.chainOrgManagement'),
                             'accountManagement': this.$t('title.accountManagement'),
                             'message': this.$t('title.message'),
-                            'backlog': this.$t('title.backlog')
+                            'backlog': this.$t('title.backlog'),
+                            'depositoryTitle': this.$t('title.depositoryTitle'),
                         }[it.nameKey];
                     });
                 }
@@ -169,7 +171,8 @@ export default {
                     'main': false,
                     'dataOverview': true,
                     'accountManagement': true,
-                    'noticeCenter': true
+                    'noticeCenter': true,
+                    'depositoryTitle':true
                 }[item.nameKey] || false;
 
                 // 子菜单权限
@@ -180,6 +183,7 @@ export default {
                             'chainOrgMgmt': true,
                             'accountManagement': true,
                             'message': true,
+                            'depositoryTitle':true,
                             'backlog': this.role === 'PU_Admin'
                         }[it.nameKey] || false;
                     });
