@@ -1,5 +1,7 @@
 "use strict"
 
+import { object } from "underscore";
+
 /**
  * 长整形时间戳转换为字符串
  *
@@ -284,4 +286,23 @@ export function random(min, max) {
     }
 
     return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * 判断对象是否为空
+ *
+ * @param {Object} obj 传入对象
+ * @return {Boolean} 对象为空返回true，否则返回false
+ */
+export function objectIsEmpty(obj){
+    if(Object.prototype.toString.call(obj) !== "[object Object]"){
+        throw new Error("传入数据类型不匹配，需传入对象类型数据")
+    }
+
+    for(let key in obj){
+        if(Object.prototype.hasOwnProperty.call(obj, key)){
+            return false
+        }
+    }
+    return true
 }
