@@ -12,7 +12,7 @@ module.exports = {
         assetsPublicPath: '/',
         proxyTable: {
             '/CMSP-Node-Manager': {
-                target: 'http://127.0.0.1:5001/',
+                target: 'http://cmsp.dd2a.net:5501',
                 changeOrigin: true,
                 pathRewrite: {
                     '^/': ''
