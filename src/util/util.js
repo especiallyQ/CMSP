@@ -1,7 +1,5 @@
 "use strict"
 
-import { object } from "underscore";
-
 /**
  * 长整形时间戳转换为字符串
  *
@@ -305,4 +303,17 @@ export function objectIsEmpty(obj){
         }
     }
     return true
+}
+
+/**
+ * 生成随机rgb颜色
+ *
+ * @return {String} 返回rgb字符串
+ */
+ export function rgb(){
+    let r = Math.floor(Math.random() * 256)
+    let g = Math.floor(Math.random() * 256)
+    let b = Math.floor(Math.random() * 256)
+
+    return `rgb(${r},${g},${b})`
 }
