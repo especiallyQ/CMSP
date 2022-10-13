@@ -4,56 +4,59 @@
     <div class="module-wrapper">
       <div class="search-tabs">
         <div class="left-search-tabs">
-          <div class="el-select-label">
-            <span>应用链</span>
-            <el-select v-model="value" size="small" style="width: 140px">
-              <el-option
-                v-for="item in cities"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+          <el-form :inline="true" label-width="60px" class="search-form">
+            <el-form-item :label="$t('blockchain4App.appChain')">
+              <el-select
+                v-model="appChainId"
+                style="width: 140px"
+                @change="handleFilterChange"
               >
-                <span style="float: left">{{ item.label }}</span>
-                <span style="float: right; color: #8492a6; font-size: 13px">{{
-                  item.value
-                }}</span>
-              </el-option>
-            </el-select>
-          </div>
+                <el-option
+                  v-for="item in appChainList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
 
-          <div class="el-select-label">
-            <span>合约名称</span>
-            <el-select v-model="value" size="small" style="width: 140px">
-              <el-option
-                v-for="item in cities"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+          <el-form :inline="true" label-width="60px" class="search-form">
+            <el-form-item :label="$t('chainEvent.contractName')">
+              <el-select
+                v-model="contractNameId"
+                style="width: 140px"
+                @change="handleFilterChange"
               >
-                <span style="float: left">{{ item.label }}</span>
-                <span style="float: right; color: #8492a6; font-size: 13px">{{
-                  item.value
-                }}</span>
-              </el-option>
-            </el-select>
-          </div>
+                <el-option
+                  v-for="item in contractNameList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
 
-          <div class="el-select-label">
-            <span>存证模板</span>
-            <el-select v-model="value" size="small" style="width: 140px">
-              <el-option
-                v-for="item in cities"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+          <el-form :inline="true" label-width="60px" class="search-form">
+            <el-form-item :label="$t('depository.template')">
+              <el-select
+                v-model="templateId"
+                style="width: 140px"
+                @change="handleFilterChange"
               >
-                <span style="float: left">{{ item.label }}</span>
-                <span style="float: right; color: #8492a6; font-size: 13px">{{
-                  item.value
-                }}</span>
-              </el-option>
-            </el-select>
-          </div>
+                <el-option
+                  v-for="item in templateList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
         </div>
         <div class="right-search-tabs">
           <el-button type="primary" size="small" style="width: 104px"
@@ -70,20 +73,110 @@
 
 <script>
 import ContentHead from "@/components/contentHead";
+import {
+  getAppChain4Depo,
+  getContractsByChain,
+  getDepoTemplateByContract,
+} from "@/util/api";
+
 export default {
   name: "depository",
-  data() {
-    return {
-      cities: [
-        {
-          label: "北京",
-        },
-      ],
-      value: "",
-    };
-  },
+
   components: {
     ContentHead,
+  },
+
+  data() {
+    return {
+      appChainId: "", //被选中应用链Id
+      contractNameId: "", //被选中合约Id
+      templateId: "", //被选中存证模板Id
+      appChainList: [], //应用链列表
+      contractNameList: [], // 合约名称列表
+      templateList: [], //存证模板列表
+    };
+  },
+
+  watch: {
+    appChainId: {
+      handler() {
+        this.getSelectContractName();
+      },
+      immediate: true,
+    },
+
+    contractNameId: {
+      handler() {
+        this.getSelectTemplateName();
+      },
+      immediate: true,
+    },
+  },
+
+  methods: {
+    // 点击应用链下拉框获取数据
+    handleFilterChange() {},
+
+    // 获取数据通用处理方法
+    handleGetData(res, abs) {
+      if (res.data.code) {
+        abs = res.data.data || [];
+      } else {
+        this.$message({
+          message: this.$chooseLang(res.data.code),
+          type: "error",
+          duration: 2000,
+        });
+      }
+    },
+
+    // 获取应用链下拉数据
+    getSelectAppChain() {
+      getAppChain4Depo().then((res) => {
+        if (res.data.code === 0) {
+          this.appChainList = res.data.data || [];
+        } else {
+          this.$message({
+            message: this.$chooseLang(res.data.code),
+            type: "error",
+            duration: 2000,
+          });
+        }
+      });
+    },
+
+    // 获取合约名称下拉数据
+    async getSelectContractName() {
+      const res = await getContractsByChain(this.appChainId);
+      if (res.data.code === 0) {
+        this.contractNameList = res.data.data || [];
+      } else {
+        this.$message({
+          message: this.$chooseLang(res.data.code),
+          type: "error",
+          duration: 2000,
+        });
+      }
+    },
+
+    // 获取存证模板下拉数据
+    async getSelectTemplateName() {
+      const res = await getDepoTemplateByContract(this.contractNameId);
+      console.log(res);
+      if (res.data.code === 0) {
+        this.templateList = res.data.data || [];
+      } else {
+        this.$message({
+          message: this.$chooseLang(res.data.code),
+          type: "error",
+          duration: 2000,
+        });
+      }
+    },
+  },
+
+  mounted() {
+    this.getSelectAppChain();
   },
 };
 </script>
