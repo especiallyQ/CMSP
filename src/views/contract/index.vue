@@ -39,8 +39,8 @@
           </div>
         </div>
         <ul class="contract-cartList">
-          <TemplateCard v-for="(num, index) in 8" :key="index" @click="test">
-            <BottomNav v-for="(num, index) in 3" :key="index" @click="test"/>
+          <TemplateCard v-for="(num, index) in 5" :key="index" @click="test" @mouseenter="test" :propTitleIconColor="getRgb()">
+            <BottomNav v-for="(num, index) in 1" :key="index" @click="test"/>
           </TemplateCard>
         </ul>
       </el-card>
@@ -53,7 +53,8 @@ import ContentHead from "@/components/contentHead.vue";
 import dispatchKeys from "@/util/storeKeys/contractTemplate/dispatchKeys";
 import storageKeys from "@/util/storageKeys/contractTemplateStorageKey";
 import TemplateCard from "@/components/templateCard/index.vue";
-import BottomNav from '@/components/templateCard/components/bottomNav.vue'
+import BottomNav from '@/components/templateCard/components/bottomNav.vue';
+import { rgb } from "@/util/util";
 
 export default {
   name: "contractTemplate",
@@ -69,6 +70,9 @@ export default {
     };
   },
   methods: {
+    getRgb(){
+      return rgb()
+    },
     getContractTemplateList(data) {
       this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST);
     },
@@ -220,7 +224,6 @@ export default {
 .card-template-container .clearfix .clearfix-container-right .iconBtn:hover {
   background-color: #bec1c7 !important;
   border-color: #cacdd4 !important;
-  transition: ;
 }
 
 .card-template-container .clearfix .clearfix-container-right .cmsp-icon-caidan {

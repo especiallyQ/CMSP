@@ -2,7 +2,7 @@
   <div class="templateCard-container">
     <el-card :body-style="{ padding: '0px' }" class="contract-cart">
       <div class="body-container">
-        <div class="top-body" @click="onClick">
+        <div class="top-body" @click="onClick" @mouseenter="onMouseenter">
           <div class="left-titleIcon">
             <h4 :style="{ backgroundColor: titleIconColor }">
               {{ propTitle[0] }}
@@ -72,15 +72,13 @@ export default {
       type: Object,
       default: () => {
         return {
-          templateCreatorShort: "创建者1",
-          templateVisibilityShort: "所有人可见",
-          templateOperation: "操作",
-          templateVersionCount: "版本数",
-          templateVersionStroke: "个",
-          contractName: "合约名称",
-          contractId: "合约ID",
-          contractVersion: "版本号",
-          templateDescription: "模板备注",
+          templateName: "合约模板名称",
+          templateVersion: "版本号",
+          templateCreator: "合约模板创建者",
+          templateCreatorShort: "创建者",
+          templateVisibility: "合约模板权限",
+          templateVisibilityShort: "权限",
+          templateDescription: "备注",
         };
       },
       //验证传入数据，必须为对象
@@ -119,6 +117,7 @@ export default {
       Object.keys(this.detilDate).forEach((key, index) => {
         let obj = {};
         let i18nName = this.$t(`table.${key}`);
+        console.log(this.$t(`table.${key}`));
         if (i18nName) {
           //判断是否是需要特殊处理的数据字段
           if (this.specialHandlingList.includes(i18nName)) {
@@ -173,9 +172,12 @@ export default {
       });
       this.detilDate = newDetilDate;
     },
-    onClick(e){
-      this.$emit("click",e)
-    }
+    onClick(e) {
+      this.$emit("click", e);
+    },
+    onMouseenter(e) {
+      this.$emit("mouseenter", e);
+    },
   },
   created() {
     this.getDrawDate();
@@ -298,10 +300,10 @@ export default {
 .body-container .bottom-menu::before {
   content: "";
   position: absolute;
-  opacity: .2;
+  opacity: 0.2;
   top: 0;
   left: 50%;
-  transform: translate(-50%,-100%);
+  transform: translate(-50%, -100%);
   width: 90%;
   height: 0.5px;
   background-color: #737a86;
