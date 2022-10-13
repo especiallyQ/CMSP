@@ -2,7 +2,7 @@
   <div class="templateCard-container">
     <el-card :body-style="{ padding: '0px' }" class="contract-cart">
       <div class="body-container">
-        <div class="top-body">
+        <div class="top-body" @click="onClick">
           <div class="left-titleIcon">
             <h4 :style="{ backgroundColor: titleIconColor }">
               {{ propTitle[0] }}
@@ -11,21 +11,19 @@
           <div class="right-content">
             <div class="right-content-container">
               <div class="right-content-title">
-                <h4 class="text">{{ title }}</h4>
+                <h4 class="text">
+                  {{ title }}
+                </h4>
               </div>
               <div class="detil">
                 <ul>
                   <li v-for="(obj, index) in detilDate" :key="index">
                     <p class="one-line">
                       <span>{{ obj.key }}</span> :
-                      <span
-                        >{{
-                          obj.name
-                        }}</span
-                      >
+                      <span>{{ obj.name }}</span>
                     </p>
                   </li>
-                  <li>
+                  <li v-if="remark.key">
                     <el-tooltip placement="top">
                       <div slot="content">
                         <div v-for="(str, index) in remark.all" :key="index">
@@ -33,12 +31,13 @@
                         </div>
                       </div>
                       <div>
-                        <span>{{ remark.key }}</span> :
-                        <span>
-                          {{ remark.name }}
-                        </span>
+                        <p class="one-line">
+                          <span>{{ remark.key }}</span> :
+                          <span>
+                            {{ remark.name }}
+                          </span>
+                        </p>
                       </div>
-                      <!-- <div><span>12512</span> : <span>123124</span></div> -->
                     </el-tooltip>
                   </li>
                 </ul>
@@ -46,7 +45,11 @@
             </div>
           </div>
         </div>
-        <div class="bottom-menu"></div>
+        <div class="bottom-menu">
+          <div class="bottom-menu-container">
+            <slot />
+          </div>
+        </div>
       </div>
     </el-card>
   </div>
@@ -77,10 +80,10 @@ export default {
           contractName: "合约名称",
           contractId: "合约ID",
           contractVersion: "版本号",
-          templateDescription: ["laksjdlaksjdlkasdaz", "aslkdjk"],
+          templateDescription: "模板备注",
         };
       },
-      //验证传入数据，必须为对象数组
+      //验证传入数据，必须为对象
       validator: (value) => {
         if (objectIsEmpty(value)) {
           return false;
@@ -103,36 +106,76 @@ export default {
         name: "",
         all: [],
       },
+      remarkMaxNumberOfWords: 30,
     };
   },
   methods: {
+    isString(val) {
+      return Object.prototype.toString.call(val) === "[object String]";
+    },
+    // 字段国际化转换，以及对某些字段做特殊处理，如备注字段的hover弹框功能
     getDrawDate() {
       const newDetilDate = [];
       Object.keys(this.detilDate).forEach((key, index) => {
         let obj = {};
         let i18nName = this.$t(`table.${key}`);
-        if (this.specialHandlingList.includes(i18nName)) {
-          try {
-            if (!Array.isArray(this.detilDate[key])) {
-              throw new Error(
-                "备注字段需要以数组形式存储每个段落，如坚持使用字符串可忽略当前提示"
-              );
-            }
-          } catch (e) {
-            this.detilDate[key] = [this.detilDate[key]];
-          }
+        if (i18nName) {
+          //判断是否是需要特殊处理的数据字段
+          if (this.specialHandlingList.includes(i18nName)) {
+            if (
+              !Array.isArray(this.detilDate[key]) &&
+              Object.prototype.toString.call(this.detilDate[key]) !==
+                "[object String]"
+            ) {
+              throw new Error("请传入字符串或数组类型的备注数据！");
+            } else {
+              //将字符串类型的备注数据转换为数组，方便渲染，默认每段30个字符，可修改上方remarkMaxNumberOfWords字段改变长度
+              if (this.isString(this.detilDate[key])) {
+                let value = this.detilDate[key];
+                let len = this.detilDate[key].length;
+                let newlist = [];
 
-          this.remark.key = i18nName;
-          this.remark.name = this.detilDate[key][0];
-          this.remark.all = this.detilDate[key];
+                if (len >= this.remarkMaxNumberOfWords) {
+                  let forNum = Math.ceil(len / this.remarkMaxNumberOfWords);
+                  for (let i = 0; i < forNum; i++) {
+                    let str = "";
+                    for (
+                      let j = i * this.remarkMaxNumberOfWords;
+                      j <
+                      i * this.remarkMaxNumberOfWords +
+                        this.remarkMaxNumberOfWords;
+                      j++
+                    ) {
+                      if (value[j]) {
+                        str += value[j];
+                      }
+                    }
+                    newlist.push(str);
+                  }
+                } else {
+                  newlist.push(value);
+                }
+                this.detilDate[key] = newlist;
+              }
+
+              this.remark.key = i18nName;
+              this.remark.name = this.detilDate[key][0];
+              this.remark.all = this.detilDate[key];
+            }
+          } else {
+            obj.key = i18nName;
+            obj.name = this.detilDate[key];
+            newDetilDate.push(obj);
+          }
         } else {
-          obj.key = i18nName;
-          obj.name = this.detilDate[key];
-          newDetilDate.push(obj);
+          throw new Error("当前国际化字段不存在");
         }
       });
       this.detilDate = newDetilDate;
     },
+    onClick(e){
+      this.$emit("click",e)
+    }
   },
   created() {
     this.getDrawDate();
@@ -150,6 +193,13 @@ export default {
 .templateCard-container .contract-cart {
   flex: 1;
   width: 100%;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.templateCard-container .contract-cart:hover {
+  border: 1px solid #62a2eb;
+  background-color: #e8f0f8;
 }
 
 .body-container {
@@ -219,6 +269,7 @@ export default {
 
 .right-content-container .detil span {
   font-size: 12px;
+  font-weight: 510;
   color: #737a86;
 }
 .right-content-container .detil .one-line {
@@ -231,5 +282,28 @@ export default {
 .body-container .bottom-menu {
   height: 37px;
   width: 100%;
+  position: relative;
+}
+
+.body-container .bottom-menu .bottom-menu-container {
+  position: absolute;
+  right: 0;
+  top: 9.5px;
+  height: 37px;
+  padding: 0 20px 0 0;
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.body-container .bottom-menu::before {
+  content: "";
+  position: absolute;
+  opacity: .2;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%,-100%);
+  width: 90%;
+  height: 0.5px;
+  background-color: #737a86;
 }
 </style>

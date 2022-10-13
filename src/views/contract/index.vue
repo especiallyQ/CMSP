@@ -39,7 +39,9 @@
           </div>
         </div>
         <ul class="contract-cartList">
-          <TemplateCard v-for="(num, index) in 1" :key="index"/>
+          <TemplateCard v-for="(num, index) in 8" :key="index" @click="test">
+            <BottomNav v-for="(num, index) in 3" :key="index" @click="test"/>
+          </TemplateCard>
         </ul>
       </el-card>
     </div>
@@ -50,13 +52,15 @@
 import ContentHead from "@/components/contentHead.vue";
 import dispatchKeys from "@/util/storeKeys/contractTemplate/dispatchKeys";
 import storageKeys from "@/util/storageKeys/contractTemplateStorageKey";
-import TemplateCard from "@/components/templateCard.vue";
+import TemplateCard from "@/components/templateCard/index.vue";
+import BottomNav from '@/components/templateCard/components/bottomNav.vue'
 
 export default {
   name: "contractTemplate",
   components: {
     ContentHead,
     TemplateCard,
+    BottomNav
   },
   data: () => {
     return {
@@ -83,6 +87,9 @@ export default {
       //默认返回true，表示当前数据有误，将重新请求新数据
       return true;
     },
+    test(){
+      console.log(123)
+    }
   },
   created() {
     // 过期更新，有效期60秒
