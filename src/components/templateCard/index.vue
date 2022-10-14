@@ -24,21 +24,24 @@
                     </p>
                   </li>
                   <li v-if="remark.key">
-                    <el-tooltip placement="top">
-                      <div slot="content">
-                        <div v-for="(str, index) in remark.all" :key="index">
-                          {{ str }}<br />
-                        </div>
-                      </div>
-                      <div>
-                        <p class="one-line">
-                          <span>{{ remark.key }}</span> :
+                    <div>
+                      <p class="one-line">
+                        <span>{{ remark.key }}</span> :
+                        <el-tooltip placement="top">
+                          <div slot="content">
+                            <div
+                              v-for="(str, index) in remark.all"
+                              :key="index"
+                            >
+                              {{ str }}<br />
+                            </div>
+                          </div>
                           <span>
                             {{ remark.name }}
                           </span>
-                        </p>
-                      </div>
-                    </el-tooltip>
+                        </el-tooltip>
+                      </p>
+                    </div>
                   </li>
                 </ul>
               </div>
@@ -72,13 +75,6 @@ export default {
       type: Object,
       default: () => {
         return {
-          templateName: "合约模板名称",
-          templateVersion: "版本号",
-          templateCreator: "合约模板创建者",
-          templateCreatorShort: "创建者",
-          templateVisibility: "合约模板权限",
-          templateVisibilityShort: "权限",
-          templateDescription: "备注",
         };
       },
       //验证传入数据，必须为对象
@@ -111,16 +107,13 @@ export default {
     isString(val) {
       return Object.prototype.toString.call(val) === "[object String]";
     },
-    // 字段国际化转换，以及对某些字段做特殊处理，如备注字段的hover弹框功能
+    //以及对某些字段做特殊处理，如备注字段的hover弹框功能
     getDrawDate() {
       const newDetilDate = [];
       Object.keys(this.detilDate).forEach((key, index) => {
         let obj = {};
-        let i18nName = this.$t(`table.${key}`);
-        console.log(this.$t(`table.${key}`));
-        if (i18nName) {
           //判断是否是需要特殊处理的数据字段
-          if (this.specialHandlingList.includes(i18nName)) {
+          if (this.specialHandlingList.includes(key)) {
             if (
               !Array.isArray(this.detilDate[key]) &&
               Object.prototype.toString.call(this.detilDate[key]) !==
@@ -157,18 +150,15 @@ export default {
                 this.detilDate[key] = newlist;
               }
 
-              this.remark.key = i18nName;
+              this.remark.key = key;
               this.remark.name = this.detilDate[key][0];
               this.remark.all = this.detilDate[key];
             }
           } else {
-            obj.key = i18nName;
+            obj.key = key;
             obj.name = this.detilDate[key];
             newDetilDate.push(obj);
           }
-        } else {
-          throw new Error("当前国际化字段不存在");
-        }
       });
       this.detilDate = newDetilDate;
     },
