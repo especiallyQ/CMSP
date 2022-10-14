@@ -1,73 +1,90 @@
 <template>
-    <div class="module-wrapper">
-      <div class="search-tabs">
-        <div class="left-search-tabs">
-          <el-form :inline="true" label-width="60px" class="search-form">
-            <el-form-item :label="$t('blockchain4App.appChain')">
-              <el-select
-                v-model="appChainId"
-                style="width: 140px"
-                @change="handleAppChainChange"
+  <div class="module-wrapper">
+    <div class="search-tabs">
+      <div class="left-search-tabs">
+        <el-form :inline="true" label-width="60px" class="search-form">
+          <el-form-item :label="$t('blockchain4App.appChain')">
+            <el-select
+              v-model="appChainId"
+              style="width: 140px"
+              @change="handleAppChainChange"
+            >
+              <el-option
+                v-for="item in appChainList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
               >
-                <el-option
-                  v-for="item in appChainList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                >
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-form>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
 
-          <el-form :inline="true" label-width="60px" class="search-form">
-            <el-form-item :label="$t('contracts.contractName')">
-              <el-select
-                v-model="contractNameId"
-                style="width: 140px"
-                @change="handleContractNameChange"
+        <el-form :inline="true" label-width="60px" class="search-form">
+          <el-form-item :label="$t('contracts.contractName')">
+            <el-select
+              v-model="contractNameId"
+              style="width: 140px"
+              @change="handleContractNameChange"
+            >
+              <el-option
+                v-for="item in contractNameList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
               >
-                <el-option
-                  v-for="item in contractNameList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                >
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-form>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
 
-          <el-form :inline="true" label-width="60px" class="search-form">
-            <el-form-item :label="$t('depository.template')">
-              <el-select
-                v-model="templateId"
-                style="width: 140px"
-                @change="handleTemplateChange"
+        <el-form :inline="true" label-width="60px" class="search-form">
+          <el-form-item :label="$t('depository.template')">
+            <el-select
+              v-model="templateId"
+              style="width: 140px"
+              @change="handleTemplateChange"
+            >
+              <el-option
+                v-for="item in templateList"
+                :key="item.id"
+                :label="item.name"
+                :value="item.id"
               >
-                <el-option
-                  v-for="item in templateList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                >
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-form>
-        </div>
-        <div class="right-search-tabs">
-          <el-button type="primary" size="small" style="width: 104px">{{
-            $t("depository.createTemplate")
-          }}</el-button>
-          <el-button type="primary" size="small" style="width: 104px">{{
-            $t("depository.saveDepository")
-          }}</el-button>
-        </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
       </div>
-      <div class="depository-list">
+      <div class="right-search-tabs">
+        <el-button type="primary" size="small" style="width: 104px">{{
+          $t("depository.createTemplate")
+        }}</el-button>
+        <el-button type="primary" size="small" style="width: 104px">{{
+          $t("depository.saveDepository")
+        }}</el-button>
       </div>
     </div>
+    <div class="depository-list">
+      <el-table :data="tableData" style="width: 100%">
+        <el-table-column
+          v-for="item in tableHeader"
+          :key="item.enName"
+          :label="item.name"
+          :align="item.align"
+          :min-width="item.width"
+        >
+        </el-table-column>
+        <el-table-column align="center" :label="a" min-width="225px">
+          <template slot-scope="scope">
+            <el-button type="text">{{ $t("text.update") }}</el-button>
+            <el-button type="text">{{ $t("depository.history") }}</el-button>
+            <el-button type="text">{{ $t("depository.validate") }}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -75,6 +92,7 @@ import {
   getAppChain4Depo,
   getContractsByChain,
   getDepoTemplateByContract,
+  getDepositoryList,
 } from "@/util/api";
 
 export default {
@@ -88,10 +106,44 @@ export default {
       appChainList: [], //应用链列表
       contractNameList: [], // 合约名称列表
       templateList: [], //存证模板列表
+      newTableHeader: [], //获取表头数据
+      templateData: [], //存证模板数据
+      currentPage: 1, // 分页-当前页码
+      pageSize: 10, // 分页-每页数据条目数
+      total: 0, // 分页-数据条目总数
+      tableData: [
+        {
+          date: "2016-05-02",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1518 弄",
+        },
+        {
+          date: "2016-05-04",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1517 弄",
+        },
+        {
+          date: "2016-05-01",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1519 弄",
+        },
+        {
+          date: "2016-05-03",
+          name: "王小虎",
+          address: "上海市普陀区金沙江路 1516 弄",
+        },
+      ],
     };
   },
 
   methods: {
+    handleEdit(index, row) {
+      console.log(index, row);
+    },
+    handleDelete(index, row) {
+      console.log(index, row);
+    },
+
     // 点击应用链下拉框获取数据
     handleAppChainChange() {
       this.getSelectContractName();
@@ -144,7 +196,30 @@ export default {
       const res = await getDepoTemplateByContract(this.contractNameId);
       if (res.data.code === 0) {
         this.templateList = res.data.data;
-        this.templateId = res.data.data[0].id;
+        if (this.templateList.length > 0) {
+          this.templateId = res.data.data[0].id;
+          const depositoryListData = await getDepositoryList({
+            pageNumber: this.currentPage,
+            pageSize: this.pageSize,
+            templateId: this.templateId,
+          });
+
+          this.templateData = depositoryListData.data.data;
+          console.log(this.templateData);
+          // for (let key of this.templateData) {
+          //   console.log(key.content);
+          // }
+          this.newTableHeader = [];
+          for (let k of depositoryListData.data.header) {
+            this.newTableHeader.push({
+              enName: k.parameterName,
+              name: k.parameterName,
+              align: "center",
+              width: "162px",
+              props: this.templateData.content,
+            });
+          }
+        }
       } else {
         this.$message({
           message: this.$chooseLang(res.data.code),
@@ -157,6 +232,30 @@ export default {
 
   mounted() {
     this.getSelectAppChain();
+  },
+
+  computed: {
+    a() {
+      return this.$t("text.operation");
+    },
+    tableHeader() {
+      let data = [
+        {
+          enName: "createTime",
+          name: this.$t("depository.timestamp"),
+          align: "center",
+          width: "195px",
+        },
+        {
+          enName: "checkTime",
+          name: this.$t("depository.validateTime"),
+          align: "center",
+          width: "195px",
+        },
+      ];
+
+      return this.newTableHeader.concat(data);
+    },
   },
 };
 </script>
@@ -196,9 +295,9 @@ export default {
   justify-content: space-evenly;
 }
 
-.depository-list{
-  width: 100%;
-  height: 50vh;
-  background-color: red;
+.depository-list {
+  width: 97%;
+  height: 80vh;
+  margin: 0 auto;
 }
 </style>
