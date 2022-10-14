@@ -1,6 +1,4 @@
 <template>
-  <div class="depository_wrapper">
-    <ContentHead :headTitle="$t('title.depositoryTitle')"></ContentHead>
     <div class="module-wrapper">
       <div class="search-tabs">
         <div class="left-search-tabs">
@@ -9,7 +7,7 @@
               <el-select
                 v-model="appChainId"
                 style="width: 140px"
-                @change="handleFilterChange"
+                @change="handleAppChainChange"
               >
                 <el-option
                   v-for="item in appChainList"
@@ -23,11 +21,11 @@
           </el-form>
 
           <el-form :inline="true" label-width="60px" class="search-form">
-            <el-form-item :label="$t('chainEvent.contractName')">
+            <el-form-item :label="$t('contracts.contractName')">
               <el-select
                 v-model="contractNameId"
                 style="width: 140px"
-                @change="handleFilterChange"
+                @change="handleContractNameChange"
               >
                 <el-option
                   v-for="item in contractNameList"
@@ -45,7 +43,7 @@
               <el-select
                 v-model="templateId"
                 style="width: 140px"
-                @change="handleFilterChange"
+                @change="handleTemplateChange"
               >
                 <el-option
                   v-for="item in templateList"
@@ -59,20 +57,20 @@
           </el-form>
         </div>
         <div class="right-search-tabs">
-          <el-button type="primary" size="small" style="width: 104px"
-            >新建存证模板</el-button
-          >
-          <el-button type="primary" size="small" style="width: 104px"
-            >录入存证信息</el-button
-          >
+          <el-button type="primary" size="small" style="width: 104px">{{
+            $t("depository.createTemplate")
+          }}</el-button>
+          <el-button type="primary" size="small" style="width: 104px">{{
+            $t("depository.saveDepository")
+          }}</el-button>
         </div>
       </div>
+      <div class="depository-list">
+      </div>
     </div>
-  </div>
 </template>
 
 <script>
-import ContentHead from "@/components/contentHead";
 import {
   getAppChain4Depo,
   getContractsByChain,
@@ -80,11 +78,7 @@ import {
 } from "@/util/api";
 
 export default {
-  name: "depository",
-
-  components: {
-    ContentHead,
-  },
+  name: "depositoryList",
 
   data() {
     return {
@@ -97,30 +91,27 @@ export default {
     };
   },
 
-  watch: {
-    appChainId: {
-      handler() {
-        this.getSelectContractName();
-      },
-      immediate: true,
-    },
-
-    contractNameId: {
-      handler() {
-        this.getSelectTemplateName();
-      },
-      immediate: true,
-    },
-  },
-
   methods: {
     // 点击应用链下拉框获取数据
-    handleFilterChange() {},
+    handleAppChainChange() {
+      this.getSelectContractName();
+    },
+    // 点击合约名称下拉框获取数据
+    handleContractNameChange() {
+      this.getSelectTemplateName();
+    },
+    // 点击存证模板下拉框获取数据
+    handleTemplateChange() {},
 
-    // 获取数据通用处理方法
-    handleGetData(res, abs) {
-      if (res.data.code) {
-        abs = res.data.data || [];
+    // 获取应用链下拉数据
+    async getSelectAppChain() {
+      const res = await getAppChain4Depo();
+      if (res.data.code === 0) {
+        this.appChainList = res.data.data;
+        if (this.appChainList.length > 0) {
+          this.appChainId = res.data.data[0].id;
+          this.getSelectContractName();
+        }
       } else {
         this.$message({
           message: this.$chooseLang(res.data.code),
@@ -130,26 +121,15 @@ export default {
       }
     },
 
-    // 获取应用链下拉数据
-    getSelectAppChain() {
-      getAppChain4Depo().then((res) => {
-        if (res.data.code === 0) {
-          this.appChainList = res.data.data || [];
-        } else {
-          this.$message({
-            message: this.$chooseLang(res.data.code),
-            type: "error",
-            duration: 2000,
-          });
-        }
-      });
-    },
-
     // 获取合约名称下拉数据
     async getSelectContractName() {
       const res = await getContractsByChain(this.appChainId);
       if (res.data.code === 0) {
-        this.contractNameList = res.data.data || [];
+        this.contractNameList = res.data.data;
+        if (this.contractNameList.length > 0) {
+          this.contractNameId = res.data.data[0].id;
+          this.getSelectTemplateName();
+        }
       } else {
         this.$message({
           message: this.$chooseLang(res.data.code),
@@ -162,9 +142,9 @@ export default {
     // 获取存证模板下拉数据
     async getSelectTemplateName() {
       const res = await getDepoTemplateByContract(this.contractNameId);
-      console.log(res);
       if (res.data.code === 0) {
-        this.templateList = res.data.data || [];
+        this.templateList = res.data.data;
+        this.templateId = res.data.data[0].id;
       } else {
         this.$message({
           message: this.$chooseLang(res.data.code),
@@ -184,14 +164,13 @@ export default {
 <style scoped>
 .module-wrapper {
   position: relative;
-  display: flex;
   height: 500px;
   background-color: #fff;
 }
 .search-tabs {
   width: 100%;
   height: 80px;
-  padding: 30px 20px 18px 20px;
+  padding: 30px 20px 18px 10px;
   box-sizing: border-box;
   display: flex;
   justify-content: space-between;
@@ -215,5 +194,11 @@ export default {
   height: 100%;
   display: flex;
   justify-content: space-evenly;
+}
+
+.depository-list{
+  width: 100%;
+  height: 50vh;
+  background-color: red;
 }
 </style>

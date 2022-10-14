@@ -8,7 +8,7 @@ const accountInfo = resolve => require(['@/views/account/accountInfo'], resolve)
 const groupInfo = resolve => require(['@/views/account/groupInfo'], resolve);
 const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
-const depository = resolve => require(['@/views/depository/depository'], resolve)
+const depository = resolve => require(['@/views/depository/index'], resolve)
 
 Vue.use(Router);
 const routes = [{
