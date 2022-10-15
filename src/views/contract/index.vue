@@ -193,7 +193,7 @@ export default {
           }
           newDataList.push(obj);
         }
-        console.log(newDataList);
+        totalCount = newDataList.length
         return {
           newDataList,
           totalCount,
