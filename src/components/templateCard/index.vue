@@ -229,6 +229,7 @@ export default {
 }
 
 .top-body .right-content {
+  margin-left: 10px;
   flex: 1;
   box-sizing: border-box;
 }

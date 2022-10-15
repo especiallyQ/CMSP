@@ -3,18 +3,33 @@
     <ContentHead :headTitle="$t('title.contractTemplate')" />
     <div class="card-template-container">
       <el-card class="box-card">
-        <ContractHeader />
-        <ul class="contract-cartList">
-          <TemplateCard
-            v-for="(obj, index) in contractTemplateList.newDataList"
-            :key="index"
-            :propTitleIconColor="getRgb()"
-            :propTitle="obj.templateName"
-            :propDetilDate="obj.data"
-          >
-            <BottomNav v-for="(num, index) in 1" :key="index" />
-          </TemplateCard>
-        </ul>
+        <ContractHeader @toggleViewModeFn="toggleViewModeFn" />
+        <transition name="fade-alert" mode="out-in" appear>
+          <div v-if="toggleViewMode" key="largeView">
+            <ul class="contract-cartList">
+              <TemplateCard
+                v-for="(obj) in contractTemplateList.newDataList"
+                :key="obj.templateName"
+                :propTitleIconColor="getRgb()"
+                :propTitle="obj.templateName"
+                :propDetilDate="obj.data"
+              >
+                <BottomNav
+                  v-for="(navObj, index) in obj.navList"
+                  :key="index"
+                  :propRemark="navObj.propRemark"
+                  :propIconName="navObj.propIconName"
+                  :propAction="navObj.propAction"
+                  :propColor="navObj.propColor"
+                  @click="btnClick($event, navObj.name)"
+                />
+              </TemplateCard>
+            </ul>
+          </div>
+          <div v-else key="smallView">
+            <SmallView :propTableData="contractTemplateList.newDataList" />
+          </div>
+        </transition>
         <PaginationView
           @changeHandleCurrent="changeHandleCurrent"
           @changeHandleSize="changeHandleSize"
@@ -33,6 +48,9 @@ import TemplateCard from "@/components/templateCard/index.vue";
 import BottomNav from "@/components/templateCard/components/bottomNav.vue";
 import ContractHeader from "./components/contractHeader.vue";
 import PaginationView from "@/components/paginationView.vue";
+import SmallView from "./components/smallView.vue";
+import { permissionKeys } from "@/util/permissionConstant";
+
 import { rgb } from "@/util/util";
 
 export default {
@@ -43,6 +61,7 @@ export default {
     BottomNav,
     ContractHeader,
     PaginationView,
+    SmallView,
   },
   data: () => {
     return {
@@ -57,10 +76,11 @@ export default {
         visibility: "templateVisibilityShort",
       },
       visibilityList: {
-        0:"所有人可见",
-        1:"群组内可见",
-        2:"仅自己可见"
-      }
+        0: "所有人可见",
+        1: "群组内可见",
+        2: "仅自己可见",
+      },
+      toggleViewMode: true,
     };
   },
   computed: {
@@ -68,8 +88,7 @@ export default {
       get() {
         let { data, totalCount } =
           this.$store.state.contractTemplate.contractTemplateData.data;
-
-        let dataLen = data.length;
+        let dataLen = this.getArrayLenth(data);
         let newDataList = [];
 
         for (let i = 0; i < dataLen; i++) {
@@ -77,16 +96,82 @@ export default {
             templateName: "",
             data: {},
           };
+
+          // 处理底侧导航栏的权限问题
+
+          //传入的默认模板，下方将会通过判断权限修改propAcion的Booleen
+          let navData = [
+            {
+              name: "viewContractTemplateVersion",
+              propRemark: this.$t("contracts.viewContractTemplateVersion"),
+              propIconName: "cmsp-icon-chakan",
+              propAction: false,
+              propColor: "#62a2eb",
+            },
+            {
+              name: "addContractTemplateVersion",
+              propRemark: this.$t("contracts.addContractTemplateVersion"),
+              propIconName: "cmsp-icon-tianjia",
+              propAction: false,
+              propColor: "#62a2eb",
+            },
+            {
+              name: "updateTemplate",
+              propRemark: this.$t("contracts.updateTemplate"),
+              propIconName: "cmsp-icon-shezhi",
+              propAction: false,
+              propColor: "#62a2eb",
+            },
+            {
+              name: "deleteTemplate",
+              propRemark: this.$t("contracts.deleteTemplate"),
+              propIconName: "cmsp-icon-guanbi1",
+              propAction: false,
+              propColor: "red",
+            },
+          ];
+          let root = localStorage.getItem("root");
+          let user = localStorage.getItem("user");
+          if (root) {
+            let permission = permissionKeys.userIdentity[root] ? permissionKeys.userIdentity[root] : 0;
+
+            obj.navList = navData.map((navObj, indexObj) => {
+              if (
+                (permission & permissionKeys.modulePermission[navObj.name].have) ===
+                permissionKeys.modulePermission[navObj.name].have
+              ) {
+                navObj.propAction = true;
+              } else if (
+                (permission & permissionKeys.modulePermission[navObj.name].pending) ===
+                permissionKeys.modulePermission[navObj.name].pending
+              ) {
+                if (user === data[i].creator) {
+                  navObj.propAction = true;
+                } else {
+                  navObj.propAction = false;
+                  navObj.propColor = "#969494";
+                }
+              } else {
+                navObj.propAction = false;
+                navObj.propColor = "#969494";
+              }
+
+              return navObj;
+            });
+          }
+          // 用于渲染模板Card标题
           obj.templateName = this.$t("text.noData");
+
+          //i18n转换
           for (let key in data[i]) {
             if (this.showDataList[key]) {
               let i18nName = this.$t(`table.${this.showDataList[key]}`);
 
               if (data[i][key] !== null) {
                 if (this.showDataList[key] !== "templateName") {
-                  if(this.showDataList[key] !== "templateVisibilityShort") {
+                  if (this.showDataList[key] !== "templateVisibilityShort") {
                     obj.data[i18nName] = data[i][key];
-                  }else {
+                  } else {
                     obj.data[i18nName] = this.visibilityList[data[i][key]];
                   }
                 } else {
@@ -108,7 +193,7 @@ export default {
           }
           newDataList.push(obj);
         }
-
+        console.log(newDataList);
         return {
           newDataList,
           totalCount,
@@ -122,6 +207,9 @@ export default {
   methods: {
     getRgb() {
       return rgb();
+    },
+    toggleViewModeFn(flag) {
+      this.toggleViewMode = flag;
     },
     getContractTemplateList(data) {
       this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST);
@@ -147,13 +235,27 @@ export default {
     changeHandleSize(val) {
       this.pageSize = val;
     },
+    getArrayLenth(arr) {
+      if (!arr) {
+        return 0;
+      }
+      return arr.length;
+    },
+    btnClick(e, key){
+      console.log(key);
+    }
   },
   created() {
     // 过期更新，有效期60秒
     if (this.storageDateIsTimeout(storageKeys.CONTRACT_TEMPLATE_DATA)) {
       this.getContractTemplateList();
     }
+    //storage为空更新
     if (this.storageDataIsEmpty(storageKeys.CONTRACT_TEMPLATE_DATA)) {
+      this.getContractTemplateList();
+    }
+    //当前用户名与保存信息不一致，更新
+    if(localStorage.getItem("user") !== JSON.parse(sessionStorage.getItem(storageKeys.CONTRACT_TEMPLATE_DATA)).belongTo){
       this.getContractTemplateList();
     }
   },
@@ -167,6 +269,21 @@ export default {
 </script>
 
 <style scoped>
+.fade-alert-enter-from,
+.fade-alert-leave-to {
+  opacity: 0 !important;
+}
+
+.fade-alert-enter-active,
+.fade-alert-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-alert-enter-to,
+.fade-alert-leave-from {
+  opacity: 1 !important;
+}
+
 .card-template-container {
   margin: 13px 13px 0 13px;
 }
