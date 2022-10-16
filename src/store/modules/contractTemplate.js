@@ -15,26 +15,23 @@ function setStorageComplexTypeDate(storageKey, data) {
 
 const state = () => {
     return {
-        contractTemplateData: getStorageComplexTypeData(storageKeys.CONTRACT_TEMPLATE_DATA) || {},
+        contractTemplateData: getStorageComplexTypeData(storageKeys.CONTRACT_TEMPLATE_DATA) || {
+            belongTO:localStorage.getItem("user") || "",
+            data: [],
+            totalCount: 0,
+        },
     }
 }
 
 const mutations = {
     SET_CONTRACT_TEMPLATE_LIST: (state, data) => {
-        state.contractTemplate = data
+        state.contractTemplateData = data
 
         setStorageComplexTypeDate(storageKeys.CONTRACT_TEMPLATE_DATA, data)
     }
 }
 
-
-/**
- * 
- * 
- * 
- * @param {array} arr 数组
- * @param {boolean} 
- */
+//默认获取第一页10条数据
 let contractTemplateParameter = {
     requestData: {
         pageNumber: 1,
@@ -47,16 +44,37 @@ let contractTemplateParameter = {
 }
 
 const actions = {
-    getContractTemplateList:async (context, requestData = contractTemplateParameter.requestData, requiredData = contractTemplateParameter.required) => {
-        try{
+    getContractTemplateList: async (context, requestData = contractTemplateParameter.requestData, requiredData = contractTemplateParameter.required) => {
+        try {
             const { data } = await queryContractTemplateList(requestData, requiredData)
+            let userName = localStorage.getItem("user") || ""
+            let root = localStorage.getItem("root") || ""
+            if (data.code == 0) {
+                //过滤用户权限内可见的模板数据
+                if(root.slice(0,2) !== "PO"){
+                    let filteList = data.data.filter((obj, index) => {
+                        return obj.creator === userName
+                    })
+                    let newData = {
+                        ...data
+                    }
+                    newData.data = filteList
+                    newData.totalCount = filteList.length
+                    context.commit(mutationsKeys.SET_CONTRACT_TEMPLATE_LIST, {
+                        belongTO:localStorage.getItem("user") || "",
+                        data:newData,
+                        timeout: Date.now() + commonKeys.MAX_AGE
+                    })
+                }else {
+                    context.commit(mutationsKeys.SET_CONTRACT_TEMPLATE_LIST, {
+                        belongTO:localStorage.getItem("user") || "",
+                        data,
+                        timeout: Date.now() + commonKeys.MAX_AGE
+                    })
+                }
+            }
 
-            context.commit(mutationsKeys.SET_CONTRACT_TEMPLATE_LIST, {
-                data,
-                timeout: Date.now() + commonKeys.MAX_AGE
-            })
-
-        }catch(err) {
+        } catch (err) {
             return Promise.reject(err)
         }
     }

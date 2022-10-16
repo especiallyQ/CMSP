@@ -31,7 +31,7 @@ export default {
   props:{
     propTotalNum: {
       type:Number,
-      default: 100
+      default: 0
     }
   },
   data() {

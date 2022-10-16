@@ -4,7 +4,7 @@
       <div slot="content">
         {{ remark }}
       </div>
-      <i :class="[propIconName, { action: action }]"></i> </el-tooltip
+      <i :style="{color:color}" :class="['icon',propIconName, { action: action }]"></i> </el-tooltip
   ></el-button>
 </template>
 
@@ -18,7 +18,7 @@ export default {
       required: true,
     },
     propIconName: {
-      default: "icon cmsp-icon-chakan",
+      default: "cmsp-icon-chakan",
       type: String,
       required: true,
     },
@@ -27,12 +27,18 @@ export default {
       type: Boolean,
       required: true,
     },
+    propColor: {
+      type:String,
+      default: "#62a2eb",
+      required: false
+    }
   },
   data() {
     return {
       remark: this.propRemark,
       iconName: this.propIconName,
       action: this.propAction,
+      color: this.propColor
     };
   },
   methods: {
@@ -47,7 +53,7 @@ export default {
 .bootomNav-container {
   width: 30px;
   height: 30px;
-  margin-left: 3px;
+  margin-left: -5px!important;
   background-color: transparent!important;
   position: relative;
   cursor: pointer;
@@ -67,6 +73,6 @@ export default {
 }
 
 .action {
-  color: #62a2eb !important;
+  color: #62a2eb;
 }
 </style>

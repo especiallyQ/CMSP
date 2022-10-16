@@ -14,24 +14,29 @@
       <el-button class="searchButton" icon="el-icon-search"></el-button>
     </div>
     <div class="clearfix-container-right">
-      <el-button-group>
-        <el-button
-          type="primary"
-          class="iconBtn"
-          :class="{ action: changeAction }"
-          @click="changeAction = false"
-        >
-          <i class="cmsp-icon-caidan"></i>
-        </el-button>
-        <el-button
-          type="primary"
-          class="iconBtn"
-          :class="{ action: !changeAction }"
-          @click="changeAction = true"
-        >
-          <i class="el-icon-menu"></i>
-        </el-button>
-      </el-button-group>
+      <div>
+        <el-button type="primary" w class="createNewContract">{{$t(`contracts.${contractTemplateAddText}`)}}</el-button>
+      </div>
+      <div>
+        <el-button-group>
+          <el-button
+            type="primary"
+            class="iconBtn"
+            :class="{ action: changeAction }"
+            @click="toggleViewMode"
+          >
+            <i class="cmsp-icon-caidan"></i>
+          </el-button>
+          <el-button
+            type="primary"
+            class="iconBtn"
+            :class="{ action: !changeAction }"
+            @click="toggleViewMode"
+          >
+            <i class="el-icon-menu"></i>
+          </el-button>
+        </el-button-group>
+      </div>
     </div>
   </div>
 </template>
@@ -43,6 +48,7 @@ export default {
     return {
       isCollapse: true,
       changeAction: true,
+      contractTemplateAddText: "contractTemplateAddText"
     };
   },
   methods: {
@@ -52,6 +58,10 @@ export default {
     searchContractTemplate() {
       return this.$t("contracts.contractNameSearch");
     },
+    toggleViewMode(){
+      this.changeAction = !this.changeAction
+      this.$emit("toggleViewModeFn",this.changeAction)
+    }
   },
 };
 </script>
@@ -126,6 +136,11 @@ export default {
   top: 50%;
   transform: translate(0, -60%);
   height: 36px;
+  display: flex;
+}
+
+.clearfix-container-right .createNewContract {
+  margin-right: 10px;
 }
 
 .clearfix .clearfix-container-right .iconBtn {
@@ -143,8 +158,8 @@ export default {
 }
 
 .clearfix .clearfix-container-right .iconBtn:hover {
-  background-color: #bec1c7 !important;
-  border-color: #cacdd4 !important;
+  transition: opacity .1s;
+  opacity: .8;
 }
 
 .clearfix .clearfix-container-right .cmsp-icon-caidan {
