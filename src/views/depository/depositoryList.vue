@@ -57,10 +57,13 @@
         </el-form>
       </div>
       <div class="right-search-tabs">
-        <el-button type="primary" size="small" style="width: 104px">{{
-          $t("depository.createTemplate")
-        }}</el-button>
-        <el-button type="primary" size="small" style="width: 104px">{{
+        <el-button
+          type="primary"
+          size="small"
+          @click="changeTemplateDialog(true)"
+          >{{ $t("depository.createTemplate") }}</el-button
+        >
+        <el-button type="primary" size="small">{{
           $t("depository.saveDepository")
         }}</el-button>
       </div>
@@ -103,6 +106,11 @@
       :total="total"
     >
     </el-pagination>
+    <CreateTemplateDialog
+      :visible.sync="createTemplateDialogVisible"
+      @update="changeTemplateDialog"
+      :appChainList="appChainList"
+    ></CreateTemplateDialog>
   </div>
 </template>
 
@@ -116,8 +124,13 @@ import {
 
 import { getDate } from "@/util/util";
 
+import CreateTemplateDialog from "@/views/depository/templateDialog/createTemplateDialog";
 export default {
   name: "depositoryList",
+
+  components: {
+    CreateTemplateDialog,
+  },
 
   data() {
     return {
@@ -133,6 +146,7 @@ export default {
       pageSize: 10, // 分页-每页数据条目数
       total: 0, // 分页-数据条目总数
       TableHeaderFlag: false, //存证模板表格表头是否显示
+      createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
       text: this.$t("text.noData"),
       a: this.$t("text.operation"),
     };
@@ -162,6 +176,23 @@ export default {
     // 点击存证模板下拉框获取数据
     handleTemplateChange() {
       this.getDepositoryData();
+    },
+
+    // 点击新建存证模板显示Dialog
+    async changeTemplateDialog(val) {
+      if (val) {
+        const res = await getAppChain4Depo();
+        if (res.data.code === 0) {
+          this.appChainList = res.data.data;
+        } else {
+          this.$message({
+            message: this.$chooseLang(res.data.code),
+            type: "error",
+            duration: 2000,
+          });
+        }
+      }
+      this.createTemplateDialogVisible = val;
     },
 
     // 获取应用链下拉数据
@@ -316,13 +347,6 @@ export default {
 }
 .el-select-label > span {
   padding-right: 12px;
-}
-
-.right-search-tabs {
-  width: 228px;
-  height: 100%;
-  display: flex;
-  justify-content: space-evenly;
 }
 
 .depository-list {
