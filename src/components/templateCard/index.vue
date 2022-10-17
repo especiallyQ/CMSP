@@ -94,7 +94,7 @@ export default {
         ? this.propTitleIconColor
         : "rgb(0, 102, 153)",
       //一些需要特殊处理的选项，不能和其他普通数据一起渲染的
-      specialHandlingList: ["备注", "Template Description", "Description"],
+      specialHandlingList: ["备注", "Template Description", "Description","id"],
       remark: {
         key: "",
         name: "",

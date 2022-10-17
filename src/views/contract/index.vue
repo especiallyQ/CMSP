@@ -3,13 +3,17 @@
     <ContentHead :headTitle="$t('title.contractTemplate')" />
     <div class="card-template-container">
       <el-card class="box-card">
-        <ContractHeader @toggleViewModeFn="toggleViewModeFn" />
+        <ContractHeader
+          @toggleViewModeFn="toggleViewModeFn"
+          :propCreateBtnShow="createBtnShow"
+          @click="createContract"
+        />
         <transition name="fade-alert" mode="out-in" appear>
           <div v-if="toggleViewMode" key="largeView">
             <ul class="contract-cartList">
               <TemplateCard
-                v-for="(obj) in contractTemplateList.newDataList"
-                :key="obj.templateName"
+                v-for="obj in contractTemplateList.newDataList"
+                :key="obj.id"
                 :propTitleIconColor="getRgb()"
                 :propTitle="obj.templateName"
                 :propDetilDate="obj.data"
@@ -21,7 +25,7 @@
                   :propIconName="navObj.propIconName"
                   :propAction="navObj.propAction"
                   :propColor="navObj.propColor"
-                  @click="btnClick($event, navObj.name)"
+                  @click="navBtnClick($event, navObj.name, obj.id, obj.templateName, obj.data[$t('table.templateVersionCount')], navObj.propAction)"
                 />
               </TemplateCard>
             </ul>
@@ -37,6 +41,14 @@
         />
       </el-card>
     </div>
+    <el-drawer
+      :title="`${drawer.title} 共 ${drawer.versionCount} 个版本`"
+      :visible.sync="drawer.showFlag"
+      :with-header="true"
+      size="25%"
+    >
+      <ContractDrawerBody />
+    </el-drawer>
   </div>
 </template>
 
@@ -49,7 +61,8 @@ import BottomNav from "@/components/templateCard/components/bottomNav.vue";
 import ContractHeader from "./components/contractHeader.vue";
 import PaginationView from "@/components/paginationView.vue";
 import SmallView from "./components/smallView.vue";
-import { permissionKeys } from "@/util/permissionConstant";
+import ContractDrawerBody from './components/contractDrawerBody/contractDrawerBody.vue'
+import { permissionKeys, root as Root } from "@/util/permissionConstant";
 
 import { rgb } from "@/util/util";
 
@@ -62,6 +75,7 @@ export default {
     ContractHeader,
     PaginationView,
     SmallView,
+    ContractDrawerBody
   },
   data: () => {
     return {
@@ -75,129 +89,168 @@ export default {
         templateNameEn: "templateName",
         visibility: "templateVisibilityShort",
       },
-      visibilityList: {
-        0: "所有人可见",
-        1: "群组内可见",
-        2: "仅自己可见",
-      },
       toggleViewMode: true,
+      requestData: {
+        pageNumber: 1,
+        pageSize: 10,
+      },
+      requiredData: {
+        creator: "",
+        templateName: "",
+      },
+      createBtnShow: false,
+      drawer: {
+        showFlag:false,
+        title:"",
+        versionCount:0,
+        canDo:false
+      },
     };
   },
   computed: {
     contractTemplateList: {
       get() {
-        let { data, totalCount } =
-          this.$store.state.contractTemplate.contractTemplateData.data;
-        let dataLen = this.getArrayLenth(data);
-        let newDataList = [];
+        try {
+          let { data, totalCount } =
+            this.$store.state.contractTemplate.contractTemplateData.data;
+          let dataLen = this.getArrayLenth(data);
+          let newDataList = [];
 
-        for (let i = 0; i < dataLen; i++) {
-          let obj = {
-            templateName: "",
-            data: {},
-          };
+          for (let i = 0; i < dataLen; i++) {
+            let obj = {
+              templateName: "",
+              data: {},
+            };
 
-          // 处理底侧导航栏的权限问题
+            // 处理底侧导航栏的权限问题
 
-          //传入的默认模板，下方将会通过判断权限修改propAcion的Booleen
-          let navData = [
-            {
-              name: "viewContractTemplateVersion",
-              propRemark: this.$t("contracts.viewContractTemplateVersion"),
-              propIconName: "cmsp-icon-chakan",
-              propAction: false,
-              propColor: "#62a2eb",
-            },
-            {
-              name: "addContractTemplateVersion",
-              propRemark: this.$t("contracts.addContractTemplateVersion"),
-              propIconName: "cmsp-icon-tianjia",
-              propAction: false,
-              propColor: "#62a2eb",
-            },
-            {
-              name: "updateTemplate",
-              propRemark: this.$t("contracts.updateTemplate"),
-              propIconName: "cmsp-icon-shezhi",
-              propAction: false,
-              propColor: "#62a2eb",
-            },
-            {
-              name: "deleteTemplate",
-              propRemark: this.$t("contracts.deleteTemplate"),
-              propIconName: "cmsp-icon-guanbi1",
-              propAction: false,
-              propColor: "red",
-            },
-          ];
-          let root = localStorage.getItem("root");
-          let user = localStorage.getItem("user");
-          if (root) {
-            let permission = permissionKeys.userIdentity[root] ? permissionKeys.userIdentity[root] : 0;
-
-            obj.navList = navData.map((navObj, indexObj) => {
+            //传入的默认模板，下方将会通过判断权限修改propAcion的Booleen
+            let navData = [
+              {
+                name: "viewContractTemplateVersion",
+                propRemark: this.$t("contracts.viewContractTemplateVersion"),
+                propIconName: "cmsp-icon-chakan",
+                propAction: false,
+                propColor: "#62a2eb",
+              },
+              {
+                name: "addContractTemplateVersion",
+                propRemark: this.$t("contracts.addContractTemplateVersion"),
+                propIconName: "cmsp-icon-tianjia",
+                propAction: false,
+                propColor: "#62a2eb",
+              },
+              {
+                name: "updateTemplate",
+                propRemark: this.$t("contracts.updateTemplate"),
+                propIconName: "cmsp-icon-shezhi",
+                propAction: false,
+                propColor: "#62a2eb",
+              },
+              {
+                name: "deleteTemplate",
+                propRemark: this.$t("contracts.deleteTemplate"),
+                propIconName: "cmsp-icon-guanbi1",
+                propAction: false,
+                propColor: "red",
+              },
+            ];
+            let visibilityList = {
+              0: this.$t("permission.all"),
+              1: this.$t("permission.group"),
+              2: this.$t("permission.owner"),
+            };
+            let root = localStorage.getItem("root");
+            let user = localStorage.getItem("user");
+            if (root) {
+              let permission = permissionKeys.contract[root]
+                ? permissionKeys.contract[root]
+                : 0;
+              //PU_AD_admin 对于是否是自己创建的模板，权限有两种情况
+              if (root == Root.PU_Admin || root == Root.AD_Admin) {
+                if (data[i].creator !== user) {
+                  permission = permissionKeys.contract[`${root}2`];
+                } else {
+                  permission = permissionKeys.contract[root];
+                }
+              }
               if (
-                (permission & permissionKeys.modulePermission[navObj.name].have) ===
-                permissionKeys.modulePermission[navObj.name].have
+                (permission &
+                  permissionKeys.modulePermission["contractTemplateAddText"]
+                    .have) ===
+                permissionKeys.modulePermission["contractTemplateAddText"].have
               ) {
-                navObj.propAction = true;
-              } else if (
-                (permission & permissionKeys.modulePermission[navObj.name].pending) ===
-                permissionKeys.modulePermission[navObj.name].pending
-              ) {
-                if (user === data[i].creator) {
+                this.createBtnShow = true;
+              }
+
+              obj.navList = navData.map((navObj, indexObj) => {
+                if (
+                  (permission &
+                    permissionKeys.modulePermission[navObj.name].have) ===
+                  permissionKeys.modulePermission[navObj.name].have
+                ) {
                   navObj.propAction = true;
+                } else if (
+                  (permission &
+                    permissionKeys.modulePermission[navObj.name].pending) ===
+                  permissionKeys.modulePermission[navObj.name].pending
+                ) {
+                  if (user === data[i].creator) {
+                    navObj.propAction = true;
+                  } else {
+                    navObj.propAction = false;
+                    navObj.propColor = "#969494";
+                  }
                 } else {
                   navObj.propAction = false;
                   navObj.propColor = "#969494";
                 }
-              } else {
-                navObj.propAction = false;
-                navObj.propColor = "#969494";
-              }
 
-              return navObj;
-            });
-          }
-          // 用于渲染模板Card标题
-          obj.templateName = this.$t("text.noData");
+                return navObj;
+              });
+            }
+            // 用于渲染模板Card标题
+            obj.templateName = this.$t("text.noData");
 
-          //i18n转换
-          for (let key in data[i]) {
-            if (this.showDataList[key]) {
-              let i18nName = this.$t(`table.${this.showDataList[key]}`);
+            // 为每个模板添加ID字段用于查询以及标识
+            obj.id = data[i].id || "";
 
-              if (data[i][key] !== null) {
-                if (this.showDataList[key] !== "templateName") {
-                  if (this.showDataList[key] !== "templateVisibilityShort") {
-                    obj.data[i18nName] = data[i][key];
+            //i18n转换
+            for (let key in data[i]) {
+              if (this.showDataList[key]) {
+                let i18nName = this.$t(`table.${this.showDataList[key]}`);
+
+                if (data[i][key] !== null) {
+                  if (this.showDataList[key] !== "templateName") {
+                    if (this.showDataList[key] !== "templateVisibilityShort") {
+                      obj.data[i18nName] = data[i][key];
+                    } else {
+                      obj.data[i18nName] = visibilityList[data[i][key]];
+                    }
                   } else {
-                    obj.data[i18nName] = this.visibilityList[data[i][key]];
+                    obj.templateName = data[i][key];
                   }
                 } else {
-                  obj.templateName = data[i][key];
-                }
-              } else {
-                if (this.showDataList[key] !== "templateName") {
-                  if (
-                    !obj.data[i18nName] &&
-                    i18nName === this.$t(`table.templateDescriptionShort`)
-                  ) {
-                    obj.data[i18nName] = this.$t("text.noRemark");
-                  } else if (!obj.data[i18nName]) {
-                    obj.data[i18nName] = this.$t("text.noData");
+                  if (this.showDataList[key] !== "templateName") {
+                    if (
+                      !obj.data[i18nName] &&
+                      i18nName === this.$t(`table.templateDescriptionShort`)
+                    ) {
+                      obj.data[i18nName] = this.$t("text.noRemark");
+                    } else if (!obj.data[i18nName]) {
+                      obj.data[i18nName] = this.$t("text.noData");
+                    }
                   }
                 }
               }
             }
+            newDataList.push(obj);
           }
-          newDataList.push(obj);
-        }
-        totalCount = newDataList.length
-        return {
-          newDataList,
-          totalCount,
-        };
+          return {
+            newDataList,
+            totalCount,
+          };
+        } catch (e) {}
       },
       set(pageSize) {
         this.pageSize = pageSize;
@@ -211,8 +264,12 @@ export default {
     toggleViewModeFn(flag) {
       this.toggleViewMode = flag;
     },
-    getContractTemplateList(data) {
-      this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST);
+    getContractTemplateList(key = "update") {
+      this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+        key: key,
+        requestData: this.requestData,
+        requiredData: this.requiredData,
+      });
     },
     storageDataIsEmpty(keys) {
       return sessionStorage.getItem(keys) ? false : true;
@@ -230,9 +287,13 @@ export default {
       return true;
     },
     changeHandleCurrent(val) {
-      console.log(val);
+      this.requestData.pageNumber = val;
+      this.getContractTemplateList("changePage");
     },
     changeHandleSize(val) {
+      this.requestData.pageSize = val;
+      this.requestData.pageNumber = 1;
+      this.getContractTemplateList();
       this.pageSize = val;
     },
     getArrayLenth(arr) {
@@ -241,9 +302,18 @@ export default {
       }
       return arr.length;
     },
-    btnClick(e, key){
-      console.log(key);
-    }
+    navBtnClick(e, key, id, templateName, versionCount, canDo) {
+      this.drawer.showFlag = !this.drawer.showFlag;
+      this.drawer.title = templateName
+      this.drawer.versionCount = versionCount
+      this.drawer.canDo = canDo
+      console.log(key, id, templateName,versionCount);
+
+      this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST,{
+        templateId:id
+      })
+    },
+    createContract(e) {},
   },
   created() {
     // 过期更新，有效期60秒
@@ -254,8 +324,13 @@ export default {
     if (this.storageDataIsEmpty(storageKeys.CONTRACT_TEMPLATE_DATA)) {
       this.getContractTemplateList();
     }
-    //当前用户名与保存信息不一致，更新
-    if(localStorage.getItem("user") !== JSON.parse(sessionStorage.getItem(storageKeys.CONTRACT_TEMPLATE_DATA)).belongTo){
+    //当前用户名与保存信息不一致更新
+    if (
+      JSON.parse(sessionStorage.getItem(storageKeys.CONTRACT_TEMPLATE_DATA)) &&
+      localStorage.getItem("user") !==
+        JSON.parse(sessionStorage.getItem(storageKeys.CONTRACT_TEMPLATE_DATA))
+          .belongTo
+    ) {
       this.getContractTemplateList();
     }
   },

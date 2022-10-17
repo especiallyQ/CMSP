@@ -5,8 +5,6 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
         :current-page="currentPage"
-        :page-sizes="pageSizes"
-        :page-size="pageSize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="totalNum"
       >
@@ -38,10 +36,15 @@ export default {
     return {
       currentPage: 1,
       pageSizes: [10,20,30,50],
-      pageSize:10,
-      totalNum:this.propTotalNum
     };
   },
+  computed:{
+    totalNum:{
+      get(){
+        return this.propTotalNum
+      }
+    }
+  }
 };
 </script>
 

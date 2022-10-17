@@ -20,24 +20,26 @@
       <el-table-column
         align="center"
         :label="this.$t('table.templateOperation')"
+        :prop="this.$t('table.templateOperation')"
         min-width="300"
       >
-        <div class="operation-container">
-          <ul>
-            <li @click="operationContract($event, 'delete')">
-              {{ $t("contracts.deleteTemplate") }}
-            </li>
-            <li @click="operationContract($event, 'update')">
-              {{ $t("contracts.updateTemplate") }}
-            </li>
-            <li @click="operationContract($event, 'add')">
-              {{ $t("contracts.addContractTemplateVersion") }}
-            </li>
-            <li @click="operationContract($event, 'view')">
-              {{ $t("contracts.viewContractTemplateVersion") }}
-            </li>
-          </ul>
-        </div>
+        <template slot-scope="scope">
+          <div class="operation-container">
+            <ul>
+              <li
+                v-for="obj in scope.row[$t('table.templateOperation')]"
+                :key="obj.name"
+              >
+                <el-button
+                  class="operationItems"
+                  :style="{ color: obj.propColor }"
+                  :disabled="!obj.propAction"
+                  >{{ $t(`contracts.${obj.name}`) }}</el-button
+                >
+              </li>
+            </ul>
+          </div>
+        </template>
       </el-table-column>
     </el-table>
   </div>
@@ -55,7 +57,7 @@ export default {
     },
   },
   methods: {
-    operationContract(e, val) {
+    operationContract(e, val, scope) {
       switch (val) {
         case "delete":
           break;
@@ -78,15 +80,15 @@ export default {
         this.$t("table.templateVisibility"),
         this.$t("table.templateVersionCount"),
       ],
-      tableData: this.propTableData,
     };
   },
   computed: {
     initTableData: {
       get() {
+        let tableData = this.propTableData
         let drawList = [];
 
-        this.tableData.forEach((obj, index) => {
+        tableData.forEach((obj, index) => {
           let newObj = {};
           Object.keys(obj.data).forEach((key, index) => {
             if (key == this.$t("table.templateCreatorShort")) {
@@ -98,6 +100,7 @@ export default {
             }
           });
           newObj[this.$t("table.templateName")] = obj.templateName;
+          newObj[this.$t("table.templateOperation")] = obj.navList;
           drawList.push(newObj);
         });
 
@@ -121,5 +124,17 @@ export default {
 
 .operation-container ul li:nth-child(1) {
   color: red;
+}
+
+.operationItems {
+  border: none;
+  padding: 0;
+  font-size: 8px;
+  font-weight: 500;
+  background-color: transparent !important;
+}
+
+.operationItems:hover {
+  color: initial;
 }
 </style>

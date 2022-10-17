@@ -15,7 +15,7 @@
     </div>
     <div class="clearfix-container-right">
       <div>
-        <el-button type="primary" w class="createNewContract">{{$t(`contracts.${contractTemplateAddText}`)}}</el-button>
+        <el-button type="primary" class="createNewContract" :class="{show:createBtnShow}" @click="onClick($event)">{{$t(`contracts.${contractTemplateAddText}`)}}</el-button>
       </div>
       <div>
         <el-button-group>
@@ -44,12 +44,29 @@
 <script>
 export default {
   name: "contractHeader",
+  props:{
+    propCreateBtnShow: {
+      type:Boolean,
+      default: false,
+      required: false
+    }
+  },
   data() {
     return {
       isCollapse: true,
       changeAction: true,
       contractTemplateAddText: "contractTemplateAddText"
     };
+  },
+  computed:{
+    createBtnShow: {
+      get(){
+        return this.propCreateBtnShow
+      }
+    },
+    onClick(e){
+      this.$emit("click",e)
+    }
   },
   methods: {
     searchCreater() {
@@ -140,6 +157,7 @@ export default {
 }
 
 .clearfix-container-right .createNewContract {
+  display: none;
   margin-right: 10px;
 }
 
@@ -171,5 +189,9 @@ export default {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.show {
+  display: block !important;
 }
 </style>
