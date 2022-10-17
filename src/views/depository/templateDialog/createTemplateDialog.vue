@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-dialog
-      title="新建存证模板"
+      :title="this.$t('depository.createTemplate')"
       :visible.sync="dialogFormVisible"
       center
       :close-on-click-modal="false"
@@ -15,12 +15,13 @@
         label-width="100px"
         class="selectForm"
       >
-        <el-form-item label="应用链" prop="appChainId">
+        <el-form-item :label="$t('blockchain4App.appChain')" prop="appChainId">
           <el-select
             class="el-select-width"
             v-model="form.appChainId"
             placeholder="请选择应用链"
             @change="changeChainOption"
+            filterable
           >
             <el-option
               :label="key.name"
@@ -31,11 +32,12 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="合约名称" prop="contractId">
+        <el-form-item :label="$t('contracts.contractName')" prop="contractId">
           <el-select
             class="el-select-width"
             v-model="form.contractId"
             placeholder="请选择合约"
+            filterable
           >
             <el-option
               v-for="key in contractNameList"
