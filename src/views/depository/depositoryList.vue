@@ -110,6 +110,8 @@
       :visible.sync="createTemplateDialogVisible"
       @update="changeTemplateDialog"
       :appChainList="appChainList"
+      v-if="createTemplateDialogVisible"
+      @getSelectTemplateName="getSelectTemplateName"
     ></CreateTemplateDialog>
   </div>
 </template>
