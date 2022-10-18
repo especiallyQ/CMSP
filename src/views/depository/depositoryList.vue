@@ -69,7 +69,11 @@
       </div>
     </div>
     <div class="depository-list">
-      <el-table :data="newTableData" style="width: 100%" :empty-text="text">
+      <el-table
+        :data="newTableData"
+        style="width: 100%"
+        :empty-text="$t('text.noData')"
+      >
         <template v-if="TableHeaderFlag">
           <el-table-column
             v-for="item in tableHeader"
@@ -85,7 +89,7 @@
         <el-table-column
           v-if="TableHeaderFlag"
           align="center"
-          :label="a"
+          :label="$t('text.operation')"
           min-width="225px"
         >
           <template slot-scope="scope">
@@ -149,8 +153,6 @@ export default {
       total: 0, // 分页-数据条目总数
       TableHeaderFlag: false, //存证模板表格表头是否显示
       createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
-      text: this.$t("text.noData"),
-      a: this.$t("text.operation"),
     };
   },
 

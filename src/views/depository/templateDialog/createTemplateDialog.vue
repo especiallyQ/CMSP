@@ -53,7 +53,7 @@
           prop="depositoryTemplateName"
         >
           <el-input
-            v-model="form.depositoryTemplateName"
+            v-model.trim="form.depositoryTemplateName"
             :placeholder="$t('depository.inputTemplateName')"
             maxlength="30"
           ></el-input>
@@ -73,7 +73,7 @@
           :key="index"
         >
           <el-input
-            v-model="key.parameterName"
+            v-model.trim="key.parameterName"
             :placeholder="$t('depository.paramName')"
             class="el-input-width"
             maxlength="16"
@@ -172,6 +172,7 @@ export default {
     return {
       dialogFormVisible: this.visible, //控制dialog是否显示
       loading: false,
+      contractNameList: [], // 合约名称列表
       form: {
         appChainId: null, //所选应用链Id
         contractId: null, // 所选合约列表Id
@@ -211,7 +212,6 @@ export default {
           disabled: false,
         },
       ],
-      contractNameList: [], // 合约名称列表
 
       // 新建模板存证表单验证规则
       rules: {
@@ -256,6 +256,7 @@ export default {
       ];
     },
   },
+
   methods: {
     // 关闭新建存证模板时触发
     close() {
@@ -282,22 +283,24 @@ export default {
         parameterName: "", //参数名称
         parameterType: "", //参数类型
       });
-      this.changeFileDisabled();
     },
     // 点击-移除参数项
     removeParameter(index) {
       this.parameterParamsForm.parameterParams2.splice(index, 1);
-      this.changeFileDisabled();
+    },
+
+    // 判断参数名是否有重复
+    checkParamName(arr, key) {
+      const parameterNames = arr.map((item) => item[key]);
+      const newParameterNames = Array.from(new Set(parameterNames));
+      return parameterNames.length === newParameterNames.length ? true : false;
     },
 
     //提交新建存证模板表单
     submitForm(formName) {
+      // 新建存证模板校验规则
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          // const params = [
-          //   ...this.parameterParamsForm.parameterParams1,
-          //   ...this.parameterParamsForm.parameterParams2,
-          // ];
           for (let i = 0; i < this.params.length; i++) {
             if (!this.params[i].parameterName) {
               this.$message({
@@ -313,14 +316,18 @@ export default {
                 ${this.$t("depository.emptyParameterType")}`,
               });
               return;
+            } else if (!this.checkParamName(this.params, "parameterName")) {
+              this.$message({
+                type: "error",
+                message: this.$t("depository.repeatParameters"),
+              });
+              return;
             }
           }
-
           this.addDepositoryTemplate({
             chainId: this.form.appChainId,
             contractId: this.form.contractId,
             depositoryTemplateName: this.form.depositoryTemplateName,
-            id: 0,
             params: this.params,
           });
         } else {
@@ -333,6 +340,7 @@ export default {
     async addDepositoryTemplate(data) {
       this.loading = true;
       const res = await saveDepoTemplate(data);
+      console.log(res);
       if (res.data.code === 0) {
         this.$emit("getSelectTemplateName");
         this.close();
@@ -348,17 +356,12 @@ export default {
 
     // 判断文件类型是否被选中
     changeFileDisabled() {
-      const params = [
-        ...this.parameterParamsForm.parameterParams1,
-        ...this.parameterParamsForm.parameterParams2,
-      ];
-      for (let key of params) {
-        if (key.parameterType.charAt("file")) {
+      for (let i = 0; i < this.params.length; i++) {
+        if (this.params[i].parameterType === "file") {
           this.parameterOption[3].disabled = true;
-          return;
+          break;
         } else {
           this.parameterOption[3].disabled = false;
-          return;
         }
       }
     },
