@@ -19,7 +19,7 @@
           <el-select
             class="el-select-width"
             v-model="form.appChainId"
-            placeholder="请选择应用链"
+            :placeholder="$t('depository.selectAppChain')"
             @change="changeChainOption"
             filterable
           >
@@ -36,7 +36,7 @@
           <el-select
             class="el-select-width"
             v-model="form.contractId"
-            placeholder="请选择合约"
+            :placeholder="$t('depository.selectContract')"
             filterable
           >
             <el-option
@@ -48,10 +48,13 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="存证模板名称" prop="depositoryTemplateName">
+        <el-form-item
+          :label="$t('depository.templateName')"
+          prop="depositoryTemplateName"
+        >
           <el-input
             v-model="form.depositoryTemplateName"
-            placeholder="请输入存证模板名称"
+            :placeholder="$t('depository.inputTemplateName')"
             maxlength="30"
           ></el-input>
         </el-form-item>
@@ -63,7 +66,7 @@
         class="selectForm"
       >
         <el-form-item
-          label="存证参数"
+          :label="$t('depository.params')"
           prop="parameter"
           :show-message="false"
           v-for="(key, index) in parameterParamsForm.parameterParams1"
@@ -71,20 +74,22 @@
         >
           <el-input
             v-model="key.parameterName"
-            placeholder="参数名"
+            :placeholder="$t('depository.paramName')"
             class="el-input-width"
             maxlength="16"
           ></el-input>
           <el-select
             v-model="key.parameterType"
-            placeholder="参数类型"
+            :placeholder="$t('depository.paramType')"
             class="el-input-width"
+            @change="changeFileDisabled"
           >
             <el-option
               v-for="(item, index) in parameterOption"
               :key="index"
               :label="item.label"
               :value="item.value"
+              :disabled="item.disabled"
             ></el-option>
           </el-select>
           <el-button
@@ -106,21 +111,24 @@
         >
           <el-input
             v-model="key.parameterName"
-            placeholder="参数名"
+            :placeholder="$t('depository.paramName')"
             class="el-input-width"
           ></el-input>
           <el-select
             v-model="key.parameterType"
-            placeholder="参数类型"
+            :placeholder="$t('depository.paramType')"
             class="el-input-width"
+            @change="changeFileDisabled"
           >
             <el-option
               v-for="(item, index) in parameterOption"
               :key="index"
               :label="item.label"
               :value="item.value"
+              :disabled="item.disabled"
             ></el-option>
           </el-select>
+
           <el-button
             type="danger"
             circle
@@ -133,12 +141,12 @@
       </el-form>
 
       <div class="dialog-footer">
-        <el-button @click="close">取 消</el-button>
+        <el-button @click="close">{{ $t("text.cancel") }}</el-button>
         <el-button
           type="primary"
           @click="submitForm('ruleForm')"
           :loading="loading"
-          >确 定</el-button
+          >{{ $t("text.sure") }}</el-button
         >
       </div>
     </el-dialog>
@@ -183,20 +191,24 @@ export default {
       // 模板参数下拉框
       parameterOption: [
         {
-          label: "字符串",
+          label: this.$t("depository.paramTypeString"),
           value: "string",
+          disabled: false,
         },
         {
-          label: "整数",
+          label: this.$t("depository.paramTypeInteger"),
           value: "int",
+          disabled: false,
         },
         {
-          label: "浮点数",
+          label: this.$t("depository.paramTypeFloat"),
           value: "float",
+          disabled: false,
         },
         {
-          label: "文件",
+          label: this.$t("depository.paramTypeFile"),
           value: "file",
+          disabled: false,
         },
       ],
       contractNameList: [], // 合约名称列表
@@ -204,13 +216,25 @@ export default {
       // 新建模板存证表单验证规则
       rules: {
         appChainId: [
-          { required: true, message: "请选择应用链", trigger: "change" },
+          {
+            required: true,
+            message: this.$t("depository.selectAppChain"),
+            trigger: "change",
+          },
         ],
         contractId: [
-          { required: true, message: "请选择合约", trigger: "change" },
+          {
+            required: true,
+            message: this.$t("depository.selectContract"),
+            trigger: "change",
+          },
         ],
         depositoryTemplateName: [
-          { required: true, message: "请输入存证模板名称", trigger: "blur" },
+          {
+            required: true,
+            message: this.$t("depository.inputTemplateName"),
+            trigger: "blur",
+          },
         ],
       },
       parameterRules: {
@@ -221,6 +245,15 @@ export default {
   watch: {
     visible() {
       this.dialogFormVisible = this.visible;
+    },
+  },
+
+  computed: {
+    params() {
+      return [
+        ...this.parameterParamsForm.parameterParams1,
+        ...this.parameterParamsForm.parameterParams2,
+      ];
     },
   },
   methods: {
@@ -249,31 +282,35 @@ export default {
         parameterName: "", //参数名称
         parameterType: "", //参数类型
       });
+      this.changeFileDisabled();
     },
     // 点击-移除参数项
     removeParameter(index) {
       this.parameterParamsForm.parameterParams2.splice(index, 1);
+      this.changeFileDisabled();
     },
 
     //提交新建存证模板表单
     submitForm(formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          const params = [
-            ...this.parameterParamsForm.parameterParams1,
-            ...this.parameterParamsForm.parameterParams2,
-          ];
-          for (let i = 0; i < params.length; i++) {
-            if (!params[i].parameterName) {
+          // const params = [
+          //   ...this.parameterParamsForm.parameterParams1,
+          //   ...this.parameterParamsForm.parameterParams2,
+          // ];
+          for (let i = 0; i < this.params.length; i++) {
+            if (!this.params[i].parameterName) {
               this.$message({
                 type: "error",
-                message: "存在空值的参数名",
+                message: this.$t("depository.emptyParameterName"),
               });
               return;
-            } else if (!params[i].parameterType) {
+            } else if (!this.params[i].parameterType) {
               this.$message({
                 type: "error",
-                message: `${params[i].parameterName}参数未设置类型`,
+                message: `
+                ${this.params[i].parameterName}
+                ${this.$t("depository.emptyParameterType")}`,
               });
               return;
             }
@@ -284,7 +321,7 @@ export default {
             contractId: this.form.contractId,
             depositoryTemplateName: this.form.depositoryTemplateName,
             id: 0,
-            params,
+            params: this.params,
           });
         } else {
           return false;
@@ -306,6 +343,23 @@ export default {
           type: "error",
           duration: 2000,
         });
+      }
+    },
+
+    // 判断文件类型是否被选中
+    changeFileDisabled() {
+      const params = [
+        ...this.parameterParamsForm.parameterParams1,
+        ...this.parameterParamsForm.parameterParams2,
+      ];
+      for (let key of params) {
+        if (key.parameterType.charAt("file")) {
+          this.parameterOption[3].disabled = true;
+          return;
+        } else {
+          this.parameterOption[3].disabled = false;
+          return;
+        }
       }
     },
   },
