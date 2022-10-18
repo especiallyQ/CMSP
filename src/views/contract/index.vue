@@ -25,7 +25,17 @@
                   :propIconName="navObj.propIconName"
                   :propAction="navObj.propAction"
                   :propColor="navObj.propColor"
-                  @click="navBtnClick($event, navObj.name, obj.id, obj.templateName, obj.data[$t('table.templateVersionCount')], navObj.propAction)"
+                  @click="
+                    navBtnClick(
+                      $event,
+                      navObj.name,
+                      obj.id,
+                      obj.templateName,
+                      obj.data[$t('table.templateVersionCount')],
+                      obj.creator,
+                      obj.data[$t('table.templateDescriptionShort')]
+                    )
+                  "
                 />
               </TemplateCard>
             </ul>
@@ -42,12 +52,18 @@
       </el-card>
     </div>
     <el-drawer
+      class="drawer"
       :title="`${drawer.title} 共 ${drawer.versionCount} 个版本`"
       :visible.sync="drawer.showFlag"
       :with-header="true"
       size="25%"
+      :before-close="handleClose"
     >
-      <ContractDrawerBody />
+      >
+      <ContractDrawerBody
+        :propCreator="drawer.creator"
+        :propDescription="drawer.description"
+      />
     </el-drawer>
   </div>
 </template>
@@ -55,13 +71,14 @@
 <script>
 import ContentHead from "@/components/contentHead.vue";
 import dispatchKeys from "@/util/storeKeys/contractTemplate/dispatchKeys";
+import mutationKeys from "@/util/storeKeys/contractTemplate/mutationsKeys";
 import storageKeys from "@/util/storageKeys/contractTemplateStorageKey";
 import TemplateCard from "@/components/templateCard/index.vue";
 import BottomNav from "@/components/templateCard/components/bottomNav.vue";
 import ContractHeader from "./components/contractHeader.vue";
 import PaginationView from "@/components/paginationView.vue";
 import SmallView from "./components/smallView.vue";
-import ContractDrawerBody from './components/contractDrawerBody/contractDrawerBody.vue'
+import ContractDrawerBody from "./components/contractDrawerBody/contractDrawerBody.vue";
 import { permissionKeys, root as Root } from "@/util/permissionConstant";
 
 import { rgb } from "@/util/util";
@@ -75,7 +92,7 @@ export default {
     ContractHeader,
     PaginationView,
     SmallView,
-    ContractDrawerBody
+    ContractDrawerBody,
   },
   data: () => {
     return {
@@ -100,10 +117,12 @@ export default {
       },
       createBtnShow: false,
       drawer: {
-        showFlag:false,
-        title:"",
-        versionCount:0,
-        canDo:false
+        showFlag: false,
+        title: "",
+        versionCount: 0,
+        canDo: false,
+        creator: "",
+        description: "",
       },
     };
   },
@@ -215,6 +234,9 @@ export default {
             // 为每个模板添加ID字段用于查询以及标识
             obj.id = data[i].id || "";
 
+            // 添加创建者字段
+            obj.creator = data[i].creator || "";
+
             //i18n转换
             for (let key in data[i]) {
               if (this.showDataList[key]) {
@@ -302,20 +324,27 @@ export default {
       }
       return arr.length;
     },
-    navBtnClick(e, key, id, templateName, versionCount, canDo) {
+    navBtnClick(e, key, id, templateName, versionCount, creator, description) {
       this.drawer.showFlag = !this.drawer.showFlag;
-      this.drawer.title = templateName
-      this.drawer.versionCount = versionCount
-      this.drawer.canDo = canDo
-      console.log(key, id, templateName,versionCount);
+      this.drawer.title = templateName;
+      this.drawer.versionCount = versionCount;
+      this.drawer.creator = creator;
+      this.drawer.description = description;
 
-      this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST,{
-        templateId:id
-      })
+      this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+        templateId: id,
+      });
     },
     createContract(e) {},
+    handleClose() {
+      this.drawer.showFlag = !this.drawer.showFlag;
+      this.$store.commit(
+        mutationKeys.SET_TEMPLATE_VERSION_LIST_IN_OUT_MODELE,
+        {}
+      );
+    },
   },
-  created() {
+  async created() {
     // 过期更新，有效期60秒
     if (this.storageDateIsTimeout(storageKeys.CONTRACT_TEMPLATE_DATA)) {
       this.getContractTemplateList();
@@ -368,4 +397,5 @@ export default {
   justify-content: flex-start;
   flex-wrap: wrap;
 }
+
 </style>

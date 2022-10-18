@@ -1216,7 +1216,7 @@ export function batchReadAlarmLog(data) {
     })
 }
 
-export function getContractTemplatsInfos(data){
+export function getContractTemplatsInfos(data) {
     return get({
         url: `${url.ORG_LIST}/contracttemplate/getTemplateListWithVersion`,
         method: 'get',

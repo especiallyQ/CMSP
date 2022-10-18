@@ -1,6 +1,6 @@
 <template>
   <el-button :disabled="!action" class="bootomNav-container" @click="onClick"
-    ><el-tooltip placement="top" :open-delay="800" :disabled="!action">
+    ><el-tooltip placement="top" :open-delay="800" :disabled="disabled">
       <div slot="content">
         {{ remark }}
       </div>
@@ -38,12 +38,17 @@ export default {
       remark: this.propRemark,
       iconName: this.propIconName,
       action: this.propAction,
-      color: this.propColor
+      color: this.propColor,
+      disabled:false
     };
   },
   methods: {
     onClick(e) {
       this.$emit("click", e);
+      this.disabled = !this.disabled
+      setTimeout(() => {
+        this.disabled = !this.disabled
+      },2000)
     },
   },
 };

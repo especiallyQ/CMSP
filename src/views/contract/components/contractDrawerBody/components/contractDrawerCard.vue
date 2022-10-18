@@ -17,7 +17,7 @@
                       {{ str }}<br />
                     </div>
                   </div>
-                  <span>
+                  <span class="remark">
                     {{ remark.name }}
                   </span>
                 </el-tooltip>
@@ -27,7 +27,7 @@
         </div>
         <div class="bottom-menu">
           <div class="bottom-menu-container">
-            <slot name="checkBox2"/>
+            <slot name="checkBox2" />
           </div>
         </div>
       </div>
@@ -39,24 +39,63 @@
 export default {
   name: "contractDrawerCard",
   props: {
-    propTitle: {
-      type: String,
-      default: "模板标题",
-      required:false
+    propRemark: {
+      type: String || Array,
+      default: "备注",
+      required: false,
     },
   },
   data() {
     return {
-      titleIconColor: this.propTitleIconColor
-        ? this.propTitleIconColor
-        : "rgb(0, 102, 153)",
-      remark: {
-        key: "",
-        name: "",
-        all: [],
-      },
       remarkMaxNumberOfWords: 30,
     };
+  },
+  computed: {
+    remark: {
+      get() {
+        if (
+          !Array.isArray(this.propRemark) &&
+          Object.prototype.toString.call(this.propRemark) !== "[object String]"
+        ) {
+          throw new Error("请传入字符串或数组类型的备注数据！");
+        } else {
+          //将字符串类型的备注数据转换为数组，方便渲染，默认每段30个字符，可修改上方remarkMaxNumberOfWords字段改变长度
+          let newlist = [];
+
+          if (this.isString(this.propRemark)) {
+            let value = this.propRemark;
+            let len = this.propRemark.length;
+
+            if (len >= this.remarkMaxNumberOfWords) {
+              let forNum = Math.ceil(len / this.remarkMaxNumberOfWords);
+              for (let i = 0; i < forNum; i++) {
+                let str = "";
+                for (
+                  let j = i * this.remarkMaxNumberOfWords;
+                  j <
+                  i * this.remarkMaxNumberOfWords + this.remarkMaxNumberOfWords;
+                  j++
+                ) {
+                  if (value[j]) {
+                    str += value[j];
+                  }
+                }
+                newlist.push(str);
+              }
+            } else {
+              newlist.push(value);
+            }
+          } else {
+            newlist = this.propRemark;
+          }
+
+          return {
+            name: newlist[0],
+            all: newlist,
+          };
+        }
+      },
+    },
   },
   methods: {
     isString(val) {
@@ -115,26 +154,27 @@ export default {
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-20%,-50%);
+  transform: translate(-20%, -50%);
   line-height: 20px;
 }
 
-.top-body .left-titleIcon .title>>>span:nth-child(1) {
-  font-size: 15px!important;
+.top-body .left-titleIcon .title >>> span:nth-child(1) {
+  font-size: 15px !important;
   color: #409eff;
   font-weight: 700;
 }
 
-.top-body .left-titleIcon .title>>>span:nth-child(2) {
+.top-body .left-titleIcon .title >>> span:nth-child(2) {
   margin-top: 10px;
   margin-left: 5px;
-  font-size: 30px!important;
+  font-size: 30px !important;
   color: #409eff;
   font-weight: 700;
 }
 
 .top-body .right-content {
-  margin-left: 10px;
+  margin-left: 65px;
+  padding: 10px 0 0 0;
   flex: 1;
   box-sizing: border-box;
 }
@@ -160,6 +200,14 @@ export default {
   font-size: 12px;
   font-weight: 510;
   color: #737a86;
+}
+
+.right-content-container .detil .remark {
+  display: block;
+  width: 10vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .body-container .bottom-menu {
