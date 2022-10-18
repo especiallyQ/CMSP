@@ -158,7 +158,7 @@ import { getContractsByChain, saveDepoTemplate } from "@/util/api";
 export default {
   name: "createTemplateDialog",
   props: {
-    visible: {
+    createTemplateDialogVisible: {
       type: Boolean,
       default: false,
       required: true,
@@ -170,7 +170,7 @@ export default {
   },
   data() {
     return {
-      dialogFormVisible: this.visible, //控制dialog是否显示
+      dialogFormVisible: this.createTemplateDialogVisible, //控制dialog是否显示
       loading: false,
       contractNameList: [], // 合约名称列表
       form: {
@@ -260,7 +260,7 @@ export default {
   methods: {
     // 关闭新建存证模板时触发
     close() {
-      this.$emit("update", false);
+      this.$emit("updateTemplateDialog", false);
     },
 
     // 选择应用链获取合约信息

@@ -63,9 +63,12 @@
           @click="changeTemplateDialog(true)"
           >{{ $t("depository.createTemplate") }}</el-button
         >
-        <el-button type="primary" size="small">{{
-          $t("depository.saveDepository")
-        }}</el-button>
+        <el-button
+          type="primary"
+          size="small"
+          @click="changeAllDialog(true, 0)"
+          >{{ $t("depository.saveDepository") }}</el-button
+        >
       </div>
     </div>
     <div class="depository-list">
@@ -111,12 +114,18 @@
     >
     </el-pagination>
     <CreateTemplateDialog
-      :visible.sync="createTemplateDialogVisible"
-      @update="changeTemplateDialog"
-      :appChainList="appChainList"
+      :createTemplateDialogVisible.sync="createTemplateDialogVisible"
+      @updateTemplateDialog="changeTemplateDialog"
+      :appChainList="appChainDialogList"
       v-if="createTemplateDialogVisible"
       @getSelectTemplateName="getSelectTemplateName"
     ></CreateTemplateDialog>
+    <AllDialog
+      :visible.sync="allDialogVisible"
+      :flag="allDialogFlag"
+      :templateId="templateId"
+      @updateAllDialog="changeAllDialog"
+    ></AllDialog>
   </div>
 </template>
 
@@ -131,11 +140,13 @@ import {
 import { getDate } from "@/util/util";
 
 import CreateTemplateDialog from "@/views/depository/templateDialog/createTemplateDialog";
+import AllDialog from "@/views/depository/templateDialog/allDialog";
 export default {
   name: "depositoryList",
 
   components: {
     CreateTemplateDialog,
+    AllDialog,
   },
 
   data() {
@@ -152,7 +163,11 @@ export default {
       pageSize: 10, // 分页-每页数据条目数
       total: 0, // 分页-数据条目总数
       TableHeaderFlag: false, //存证模板表格表头是否显示
+
       createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
+      appChainDialogList: [], //点击新建存证模板获取应用链数据
+      allDialogVisible: false, //录入存证信息、编辑、数据校验Dialog是否显示
+      allDialogFlag: 0, //区分  0录入存证信息、 1编辑、 2数据校验 Dialog标识
     };
   },
 
@@ -182,21 +197,36 @@ export default {
       this.getDepositoryData();
     },
 
-    // 点击新建存证模板显示Dialog
+    // 切换新建存证模板Dialog是否显示
     async changeTemplateDialog(val) {
-      if (val) {
-        const res = await getAppChain4Depo();
-        if (res.data.code === 0) {
-          this.appChainList = res.data.data;
-        } else {
-          this.$message({
-            message: this.$chooseLang(res.data.code),
-            type: "error",
-            duration: 2000,
-          });
-        }
-      }
       this.createTemplateDialogVisible = val;
+      if (val) {
+        getAppChain4Depo()
+          .then((res) => {
+            if (res.data.code === 0) {
+              this.appChainDialogList = res.data.data;
+            } else {
+              this.$message({
+                message: this.$chooseLang(res.data.code),
+                type: "error",
+                duration: 2000,
+              });
+            }
+          })
+          .catch(() => {
+            this.$message({
+              message: this.$t("text.systemError"),
+              type: "error",
+              duration: 2000,
+            });
+          });
+      }
+    },
+
+    // 切换录入存证信息、编辑、数据校验Dialog是否显示
+    changeAllDialog(val, flag = 0) {
+      this.allDialogVisible = val;
+      this.allDialogFlag = flag;
     },
 
     // 获取应用链下拉数据
