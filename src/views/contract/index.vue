@@ -33,7 +33,8 @@
                       obj.templateName,
                       obj.data[$t('table.templateVersionCount')],
                       obj.creator,
-                      obj.data[$t('table.templateDescriptionShort')]
+                      obj.data[$t('table.templateDescriptionShort')],
+                      obj
                     )
                   "
                 />
@@ -59,10 +60,10 @@
       size="25%"
       :before-close="handleClose"
     >
-      >
       <ContractDrawerBody
         :propCreator="drawer.creator"
         :propDescription="drawer.description"
+        :propCurrentObj="drawer.currentObj"
       />
     </el-drawer>
   </div>
@@ -123,6 +124,7 @@ export default {
         canDo: false,
         creator: "",
         description: "",
+        currentObj:{}
       },
     };
   },
@@ -179,6 +181,7 @@ export default {
               1: this.$t("permission.group"),
               2: this.$t("permission.owner"),
             };
+
             let root = localStorage.getItem("root");
             let user = localStorage.getItem("user");
             if (root) {
@@ -324,12 +327,13 @@ export default {
       }
       return arr.length;
     },
-    navBtnClick(e, key, id, templateName, versionCount, creator, description) {
+    navBtnClick(e, key, id, templateName, versionCount, creator, description, currentObj) {
       this.drawer.showFlag = !this.drawer.showFlag;
       this.drawer.title = templateName;
       this.drawer.versionCount = versionCount;
       this.drawer.creator = creator;
       this.drawer.description = description;
+      this.drawer.currentObj = currentObj
 
       this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
         templateId: id,

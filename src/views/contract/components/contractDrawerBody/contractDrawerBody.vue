@@ -6,7 +6,11 @@
       :indeterminate="isIndeterminate"
       v-model="checkAll"
       @change="handleCheckAllChange"
-      >{{ `已选 ${checkNum} 项` }}</el-checkbox
+      >{{
+        `${this.$t("text.batchTipPrefix")} ${checkNum} ${this.$t(
+          "text.batchTipSuffix"
+        )}`
+      }}</el-checkbox
     >
     <div class="deleteBtn-box">
       <el-button
@@ -41,7 +45,7 @@
             :propAction="navObj.propAction"
             :propColor="navObj.propColor"
             :propIconName="navObj.propIconName"
-            @click="drawerNavBtn($event, obj.id, navObj.name, navObj)"
+            @click="drawerNavBtn($event, obj.id, navObj.name, currentObj, obj)"
           />
         </template>
       </ContractDrawerCard>
@@ -52,14 +56,85 @@
 
       <el-dialog
         :title="this.$t('contracts.contractTemplateVersionCopyText')"
+        class="dialog"
         :visible.sync="dialogShow"
         width="30%"
         :modal="false"
+        center
+        :close-on-click-modal="false"
       >
-        <span>需要注意的是内容是默认不居中的</span>
+        <div class="dialog-body">
+          <p>
+            <span style="color: red">*</span
+            ><span class="dialog-line-title">{{
+              this.$t("contracts.contractTemplateName")
+            }}</span
+            ><el-input
+              @blur="valiData($event, 'inputContractTemplateName')"
+              v-model="copyReqData.templateName"
+              :placeholder="this.$t('contracts.inputContractTemplateName')"
+            ></el-input>
+            <span class="warning">
+              <div>
+                {{ copyTemplateNameWarn }}
+              </div>
+            </span>
+          </p>
+          <p>
+            <span style="color: red">*</span
+            ><span class="dialog-line-title">{{
+              this.$t("contracts.contractTemplateVisibility")
+            }}</span>
+            <el-select
+              v-model="copySelectValue"
+              placeholder="请选择"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="(obj, index) in versionList"
+                :key="obj[index]"
+                :label="$t(`permission.${obj[index]}`)"
+                :value="$t(`permission.${obj[index]}`)"
+              >
+              </el-option>
+            </el-select>
+          </p>
+          <p>
+            <span style="color: red">*</span
+            ><span class="dialog-line-title">{{
+              this.$t("contracts.contractTemplateVersion")
+            }}</span
+            ><el-input
+              @blur="valiData($event, 'inputContractTemplateVersion')"
+              v-model="copyReqData.templateVersion"
+              :placeholder="this.$t('contracts.inputContractTemplateVersion')"
+            ></el-input>
+            <span class="warning">
+              <div>
+                {{ copyTemplateVersionWarn }}
+              </div>
+            </span>
+          </p>
+          <p>
+            <span
+              class="
+                dialog-line-title dialog-line-title-contractTemplateDescription
+              "
+              >{{ this.$t("contracts.contractTemplateDescription") }}</span
+            ><el-input
+              type="textarea"
+              :rows="5"
+              resize="none"
+              v-model="copyReqData.description"
+              :placeholder="
+                this.$t('contracts.inputContractTemplateDescription')
+              "
+            ></el-input>
+          </p>
+        </div>
         <span slot="footer" class="dialog-footer">
-          <el-button @click="dialogShow = false">取 消</el-button>
-          <el-button type="primary" @click="dialogShow = false"
+          <el-button @click="dialogSelectBtn($event, false)">取 消</el-button>
+          <el-button type="primary" @click="dialogSelectBtn($event, true)"
             >确 定</el-button
           >
         </span>
@@ -72,7 +147,13 @@
 import ContractDrawerCard from "./components/contractDrawerCard.vue";
 import BottomNav from "@/components/templateCard/components/bottomNav.vue";
 
-import { downloadContractTemplateVersion } from "@/util/api";
+import {
+  downloadContractTemplateVersion,
+  copyContractTemplateVersion,
+} from "@/util/api";
+import { root as Root } from "@/util/permissionConstant";
+import { chooseLang } from "@/util/errcode";
+import { JSONSwitchFormData } from '@/util/util'
 
 export default {
   name: "contractDrawer",
@@ -91,6 +172,13 @@ export default {
       default: "",
       required: true,
     },
+    propCurrentObj: {
+      type: Object,
+      default: () => {
+        return {};
+      },
+      required: true,
+    },
   },
   data() {
     return {
@@ -99,6 +187,20 @@ export default {
       isIndeterminate: true,
       checkNum: 0,
       dialogShow: false,
+      versionList: [{ 0: "all" }, { 1: "group" }, { 2: "owner" }],
+      originTemplateName: "",
+      copySelectValue: "",
+      copyTextarea: "",
+      copyTemplateNameWarn: "",
+      copyTemplateVersionWarn: "",
+      copyReqData: {
+        id: "",
+        templateId: "",
+        templateVersion: "",
+        description: "",
+        templateName: "",
+        templateSource: "",
+      },
     };
   },
   computed: {
@@ -112,6 +214,8 @@ export default {
         let user = localStorage.getItem("user");
 
         let filterList = ["downloadContractTemplate", "editCode"];
+
+        let filterRoot = [Root.AD_Admin, Root.PO_Admin, Root.PU_Admin];
 
         for (let i = 0; i < len; i++) {
           let contractDrawerBottomList = [
@@ -151,9 +255,19 @@ export default {
               propColor: "red",
             },
           ];
+
+          let root = localStorage.getItem("root") || "";
           contractDrawerBottomList.forEach((obj) => {
             if (this.propCreator == user) {
               obj.propAction = true;
+            } else if (filterRoot.includes(root)) {
+              filterList.push("copyContractTemplateVersion");
+              if (filterList.includes(obj.name)) {
+                obj.propAction = true;
+              } else {
+                obj.propColor = "#969494";
+              }
+              filterList.pop();
             } else {
               if (filterList.includes(obj.name)) {
                 obj.propAction = true;
@@ -179,8 +293,90 @@ export default {
         return this.propDescription;
       },
     },
+    currentObj: {
+      get() {
+        return this.propCurrentObj;
+      },
+    },
+    copyVisivility: {
+      get() {
+        let versionObj = this.versionList.filter((obj, index) => {
+          return this.$t(`permission.${obj[index]}`) == this.copySelectValue;
+        })[0];
+        if (versionObj) {
+          return Object.keys(versionObj)[0];
+        }
+      },
+    },
   },
   methods: {
+    valiData(e, key) {
+      switch (key) {
+        case "inputContractTemplateName":
+          if (!this.copyReqData.templateName) {
+            this.copyTemplateNameWarn = this.$t(
+              "contracts.inputContractTemplateName"
+            );
+          } else {
+            this.copyTemplateNameWarn = "";
+          }
+          break;
+        case "inputContractTemplateVersion":
+          if (!this.copyReqData.templateVersion) {
+            this.copyTemplateVersionWarn = this.$t(
+              "contracts.selectContractTemplateVersion"
+            );
+          } else {
+            this.copyTemplateVersionWarn = "";
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    async dialogSelectBtn(flag) {
+      if (flag) {
+        if (!this.copyTemplateNameWarn && !this.copyTemplateVersionWarn) {
+          try {
+            if (this.originTemplateName == this.copyReqData.templateName) {
+              this.$message({
+                message: this.$t("text.contractExist"),
+                type: "warning",
+              });
+            } else {
+              let requestData = {
+                ...this.copyReqData,
+                visibility: this.copyVisivility,
+              };
+
+              let formData = JSONSwitchFormData(requestData)
+
+              const { data } = await copyContractTemplateVersion(formData);
+              console.log(data);
+              if (data.code == 202145) {
+                this.$message({
+                  message: chooseLang(data.code),
+                  type: "warning",
+                });
+              } else {
+                this.$message({
+                  message: this.$t("text.addSuccess"),
+                  type: "success",
+                });
+                return (this.dialogShow = false);
+              }
+            }
+          } catch (e) {
+            this.$message({
+              message: e.msg || e.message,
+              type: "warning",
+            });
+          }
+        }
+      } else {
+        return (this.dialogShow = false);
+      }
+    },
     handleCheckAllChange(val) {
       this.checkedList = val ? this.templateVersionList.data : [];
       this.checkNum = this.checkedList.length;
@@ -208,16 +404,37 @@ export default {
       a.click();
       document.body.removeChild(a);
     },
-    copyContractTamplateVersion(navObj) {
+    copyContractTamplateVersion(obj, vObj) {
+      console.log(obj, vObj);
+
+      this.copyTemplateNameWarn = "";
+      this.copyTemplateVersionWarn = "";
+
+      this.copyReqData.templateName = obj.templateName;
+      this.originTemplateName = obj.templateName;
+
+      this.copySelectValue = obj.data[this.$t("table.templateVisibilityShort")];
+
+      this.copyReqData.templateVersion = vObj.templateVersion;
+      this.copyReqData.description =
+        obj.data[this.$t("table.templateDescriptionShort")] ==
+        this.$t("text.noRemark")
+          ? ""
+          : obj.data[this.$t("table.templateDescriptionShort")];
+
+      this.copyReqData.id = vObj.id;
+      this.copyReqData.templateId = vObj.templateId;
+
+      this.copyReqData.templateSource = vObj.templateSource;
       this.dialogShow = !this.dialogShow;
     },
-    async drawerNavBtn(e, id, name, navObj) {
+    async drawerNavBtn(e, id, name, Obj, vObj) {
       switch (name) {
         case "downloadContractTemplate":
           this.downloadContractTemplate(id);
           break;
         case "copyContractTemplateVersion":
-          this.copyContractTamplateVersion(navObj);
+          this.copyContractTamplateVersion(Obj, vObj);
           break;
         case "editCode":
           break;
@@ -253,5 +470,48 @@ export default {
 
 .addContractTemplateVersion {
   width: 100%;
+}
+
+.dialog {
+  width: 100vw;
+  min-width: 1000px;
+}
+
+.dialog-body {
+  width: 100%;
+}
+
+.dialog-body p {
+  position: relative;
+  display: flex;
+  white-space: nowrap;
+  line-height: 35px;
+}
+
+.dialog-body .dialog-line-title {
+  margin-right: 15px;
+  margin-bottom: 20px;
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: 300;
+}
+
+.dialog-body .dialog-line-title-contractTemplateDescription {
+  margin-left: 57px;
+}
+
+.dialog >>> .el-dialog__footer {
+  text-align: right;
+}
+
+.warning {
+  position: absolute;
+  width: 100px;
+  bottom: 10%;
+  left: 100px;
+  text-align: center;
+  font-size: 13px;
+  color: red;
+  height: 20px;
 }
 </style>

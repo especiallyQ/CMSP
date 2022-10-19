@@ -116,6 +116,7 @@ export default {
   display: flex;
   width: 100%;
   padding: 0 8px 16px;
+  min-width: 200px;
 }
 
 .contractDrawerCard-container .contractDrawerCard-cart {

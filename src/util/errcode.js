@@ -377,7 +377,7 @@ let errCode = {
     },
     "202145": {
         en: "Contract template already exists",
-        zh: "合约模板已存存"
+        zh: "合约模板已存在"
     },
     "202146": {
         en: "Upload file is empty",
