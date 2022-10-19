@@ -1,130 +1,146 @@
 <template>
-  <div class="module-wrapper">
-    <div class="search-tabs">
-      <div class="left-search-tabs">
-        <el-form :inline="true" label-width="60px" class="search-form">
-          <el-form-item :label="$t('blockchain4App.appChain')">
-            <el-select
-              v-model="appChainId"
-              style="width: 140px"
-              @change="handleAppChainChange"
-            >
-              <el-option
-                v-for="item in appChainList"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
+  <div class="depository_wrapper">
+    <ContentHead :headTitle="$t('title.depositoryTitle')"></ContentHead>
+    <div class="module-wrapper">
+      <div class="search-tabs">
+        <div class="left-search-tabs">
+          <el-form :inline="true" label-width="60px" class="search-form">
+            <el-form-item :label="$t('blockchain4App.appChain')">
+              <el-select
+                v-model="id.appChainId"
+                style="width: 140px"
+                @change="handleAppChainChange"
               >
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
+                <el-option
+                  v-for="item in appChainList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
 
-        <el-form :inline="true" label-width="60px" class="search-form">
-          <el-form-item :label="$t('contracts.contractName')">
-            <el-select
-              v-model="contractNameId"
-              style="width: 140px"
-              @change="handleContractNameChange"
-            >
-              <el-option
-                v-for="item in contractNameList"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
+          <el-form :inline="true" label-width="60px" class="search-form">
+            <el-form-item :label="$t('contracts.contractName')">
+              <el-select
+                v-model="id.contractNameId"
+                style="width: 140px"
+                @change="handleContractNameChange"
               >
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
+                <el-option
+                  v-for="item in contractNameList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
 
-        <el-form :inline="true" label-width="60px" class="search-form">
-          <el-form-item :label="$t('depository.template')">
-            <el-select
-              v-model="templateId"
-              style="width: 140px"
-              @change="handleTemplateChange"
-            >
-              <el-option
-                v-for="item in templateList"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id"
+          <el-form :inline="true" label-width="60px" class="search-form">
+            <el-form-item :label="$t('depository.template')">
+              <el-select
+                v-model="id.templateId"
+                style="width: 140px"
+                @change="handleTemplateChange"
               >
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </div>
-      <div class="right-search-tabs">
-        <el-button
-          type="primary"
-          size="small"
-          @click="changeTemplateDialog(true)"
-          >{{ $t("depository.createTemplate") }}</el-button
-        >
-        <el-button
-          type="primary"
-          size="small"
-          @click="changeAllDialog(true, 0)"
-          >{{ $t("depository.saveDepository") }}</el-button
-        >
-      </div>
-    </div>
-    <div class="depository-list">
-      <el-table
-        :data="newTableData"
-        style="width: 100%"
-        :empty-text="$t('text.noData')"
-      >
-        <template v-if="TableHeaderFlag">
-          <el-table-column
-            v-for="item in tableHeader"
-            :key="item.enName"
-            :label="item.name"
-            :align="item.align"
-            :min-width="item.width"
-            :prop="item.props"
-            show-overflow-tooltip
+                <el-option
+                  v-for="item in templateList"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="right-search-tabs">
+          <el-button
+            type="primary"
+            size="small"
+            @click="changeTemplateDialog(true)"
+            >{{ $t("depository.createTemplate") }}</el-button
           >
-          </el-table-column>
-        </template>
-        <el-table-column
-          v-if="TableHeaderFlag"
-          align="center"
-          :label="$t('text.operation')"
-          min-width="225px"
+          <el-button
+            type="primary"
+            size="small"
+            @click="changeAllDialog(true, 0)"
+            >{{ $t("depository.saveDepository") }}</el-button
+          >
+        </div>
+      </div>
+      <div class="depository-list">
+        <el-table
+          :data="newTableData"
+          style="width: 100%"
+          :empty-text="$t('text.noData')"
         >
-          <template slot-scope="scope">
-            <el-button type="text">{{ $t("text.update") }}</el-button>
-            <el-button type="text">{{ $t("depository.history") }}</el-button>
-            <el-button type="text">{{ $t("depository.validate") }}</el-button>
+          <template v-if="TableHeaderFlag">
+            <el-table-column
+              v-for="item in tableHeader"
+              :key="item.enName"
+              :label="item.name"
+              :align="item.align"
+              :min-width="item.width"
+              :prop="item.props"
+              show-overflow-tooltip
+            >
+            </el-table-column>
           </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column
+            v-if="TableHeaderFlag"
+            align="center"
+            :label="$t('text.operation')"
+            min-width="225px"
+          >
+            <template slot-scope="scope">
+              <el-button
+                type="text"
+                @click="changeAllDialog(true, 1, scope.row)"
+                >{{ $t("text.update") }}</el-button
+              >
+              <el-button type="text" @click="goDepositoryHis(scope.row)">{{
+                $t("depository.history")
+              }}</el-button>
+              <el-button
+                type="text"
+                @click="changeAllDialog(true, 2, scope.row)"
+                >{{ $t("depository.validate") }}</el-button
+              >
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <el-pagination
+        class="page"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :page-sizes="[10, 20, 30, 50]"
+        :page-size="10"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+      >
+      </el-pagination>
+      <CreateTemplateDialog
+        v-if="createTemplateDialogVisible"
+        :createTemplateDialogVisible.sync="createTemplateDialogVisible"
+        @updateTemplateDialog="changeTemplateDialog"
+        @getSelectTemplateName="getSelectTemplateName"
+      ></CreateTemplateDialog>
+      <AllDialog
+        v-if="allDialogVisible"
+        :visible.sync="allDialogVisible"
+        :flag="allDialogFlag"
+        :template="allDialogTemplateData"
+        @updateAllDialog="changeAllDialog"
+        :editData="editData"
+        @id="id"
+      ></AllDialog>
     </div>
-    <el-pagination
-      class="page"
-      @size-change="handleSizeChange"
-      @current-change="handleCurrentChange"
-      :page-sizes="[10, 20, 30, 50]"
-      :page-size="10"
-      layout="total, sizes, prev, pager, next, jumper"
-      :total="total"
-    >
-    </el-pagination>
-    <CreateTemplateDialog
-      v-if="createTemplateDialogVisible"
-      :createTemplateDialogVisible.sync="createTemplateDialogVisible"
-      @updateTemplateDialog="changeTemplateDialog"
-      @getSelectTemplateName="getSelectTemplateName"
-    ></CreateTemplateDialog>
-    <AllDialog
-      :visible.sync="allDialogVisible"
-      :flag="allDialogFlag"
-      :template="allDialogTemplateData"
-      @updateAllDialog="changeAllDialog"
-    ></AllDialog>
   </div>
 </template>
 
@@ -137,7 +153,7 @@ import {
 } from "@/util/api";
 
 import { getDate } from "@/util/util";
-
+import ContentHead from "@/components/contentHead";
 import CreateTemplateDialog from "@/views/depository/templateDialog/createTemplateDialog";
 import AllDialog from "@/views/depository/templateDialog/allDialog";
 export default {
@@ -145,14 +161,17 @@ export default {
 
   components: {
     CreateTemplateDialog,
+    ContentHead,
     AllDialog,
   },
 
   data() {
     return {
-      appChainId: "", //被选中应用链Id
-      contractNameId: "", //被选中合约Id
-      templateId: "", //被选中存证模板Id
+      id: {
+        appChainId: "", //被选中应用链Id
+        contractNameId: "", //被选中合约Id
+        templateId: "", //被选中存证模板Id
+      },
       appChainList: [], //应用链列表
       contractNameList: [], // 合约名称列表
       templateList: [], //存证模板列表
@@ -167,6 +186,7 @@ export default {
       allDialogVisible: false, //录入存证信息、编辑、数据校验Dialog是否显示
       allDialogFlag: 0, //区分  0录入存证信息、 1编辑、 2数据校验 Dialog标识
       allDialogTemplateData: null, //当前存证模板信息
+      editData: null, //编辑当前选中的数据
     };
   },
 
@@ -202,13 +222,20 @@ export default {
     },
 
     // 切换录入存证信息、编辑、数据校验Dialog是否显示
-    changeAllDialog(val, flag = 0) {
+    changeAllDialog(val, flag = 0, data) {
       this.allDialogTemplateData = this.templateList.filter((item) => {
-        return item.id === this.templateId;
+        return item.id === this.id.templateId;
       });
-
+      this.editData = data;
       this.allDialogVisible = val;
       this.allDialogFlag = flag;
+    },
+
+    //  跳转历史版本
+    goDepositoryHis(row) {
+      console.log(this.id);
+      console.log(row);
+      this.$router.push('/depositoryHis')
     },
 
     // 获取应用链下拉数据
@@ -217,7 +244,7 @@ export default {
       if (res.data.code === 0) {
         this.appChainList = res.data.data;
         if (this.appChainList.length > 0) {
-          this.appChainId = res.data.data[0].id;
+          this.id.appChainId = res.data.data[0].id;
           this.getSelectContractName();
         }
       } else {
@@ -231,11 +258,11 @@ export default {
 
     // 获取合约名称下拉数据
     async getSelectContractName() {
-      const res = await getContractsByChain(this.appChainId);
+      const res = await getContractsByChain(this.id.appChainId);
       if (res.data.code === 0) {
         this.contractNameList = res.data.data;
         if (this.contractNameList.length > 0) {
-          this.contractNameId = res.data.data[0].id;
+          this.id.contractNameId = res.data.data[0].id;
           this.getSelectTemplateName();
         }
       } else {
@@ -250,11 +277,11 @@ export default {
     // 获取存证模板下拉数据
     async getSelectTemplateName() {
       this.currentPage = 1;
-      const res = await getDepoTemplateByContract(this.contractNameId);
+      const res = await getDepoTemplateByContract(this.id.contractNameId);
       if (res.data.code === 0) {
         this.templateList = res.data.data;
         if (this.templateList.length > 0) {
-          this.templateId = res.data.data[0].id;
+          this.id.templateId = res.data.data[0].id;
           this.getDepositoryData();
         }
       } else {
@@ -272,7 +299,7 @@ export default {
         const depositoryListData = await getDepositoryList({
           pageNumber: this.currentPage,
           pageSize: this.pageSize,
-          templateId: this.templateId,
+          templateId: this.id.templateId,
         });
 
         // 列表表头数据

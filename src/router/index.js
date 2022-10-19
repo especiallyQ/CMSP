@@ -8,7 +8,8 @@ const accountInfo = resolve => require(['@/views/account/accountInfo'], resolve)
 const groupInfo = resolve => require(['@/views/account/groupInfo'], resolve);
 const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
-const depository = resolve => require(['@/views/depository/index'], resolve)
+const depositoryList = resolve => require(['@/views/depository/depositoryList'], resolve)
+const depositoryHis = resolve => require(['@/views/depository/depositoryHis'], resolve)
 
 Vue.use(Router);
 const routes = [{
@@ -44,7 +45,7 @@ const routes = [{
     }, {
         path: '/groupInfo', component: groupInfo, name: 'groupMgmt', nameKey: 'groupManagement', menuShow: true, meta: { requireAuth: true }
     }]
-},{
+}, {
     path: '/',
     name: 'depository',
     nameKey: 'depositoryTitle',
@@ -52,10 +53,16 @@ const routes = [{
     menuShow: true,
     iconCls: 'ext-icon-baocun sidebar-icon',
     component: main,
-    children: [{
-        path: '/depository', component: depository, name: 'depositoryTitle', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true }
-    }]
-},{
+    children: [
+        {
+            path: '/depository', component: depositoryList, name: 'depositoryTitle', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+        },
+        {
+            path: '/depositoryHis', component: depositoryHis, name: 'depositoryTitle', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+        },
+
+    ]
+}, {
     path: '/',
     component: main,
     name: 'noticeCenter',

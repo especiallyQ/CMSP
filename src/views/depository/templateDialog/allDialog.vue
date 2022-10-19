@@ -4,13 +4,12 @@
       :title="allDialogTitle"
       :visible.sync="dialogFormVisible"
       :close-on-click-modal="false"
-      @open="openAllDialog"
       @close="closeAllDialog"
       center
       width="498px"
     >
       <el-form
-        :model="form.depositoryContentForm"
+        :model="form"
         ref="ruleForm"
         label-width="100px"
         class="selectForm"
@@ -27,7 +26,7 @@
           :prop="item.parameterName"
         >
           <el-input
-            v-model="form.depositoryContentForm[item.parameterName]"
+            v-model="form[item.parameterName]"
             v-if="item.parameterType !== 'file'"
           ></el-input>
           <!-- <el-button type="file" v-else>{{ $t("text.upLoadFile") }}</el-button> -->
@@ -57,7 +56,11 @@
 </template>
 
 <script>
-import { getDepoTemplateById, saveDepositoryContent } from "@/util/api";
+import {
+  getDepoTemplateById,
+  saveDepositoryContent,
+  modifyDepositoryContent,
+} from "@/util/api";
 export default {
   props: {
     // 控制Dialog是否显示
@@ -71,20 +74,27 @@ export default {
       type: Number,
       required: true,
     },
-    // 存证模板Id
+    // 存证模板
     template: {
       type: Array,
+    },
+    // 编辑时所选的列表数据
+    editData: {
+      type: Object,
+    },
+    // 存证模板Id
+    id: {
+      type: Object,
     },
   },
   data() {
     return {
       dialogFormVisible: this.visible, //控制dialog是否显示
       templateName: null, //存证模板名称
-      parameter: {},
+      parameter: [],
       rules: {}, //验证规则
       form: {
         //表单数据
-        depositoryContentForm: {},
       },
     };
   },
@@ -99,33 +109,85 @@ export default {
   },
 
   methods: {
+    editFormData() {
+      for (let key of this.parameter) {
+        this.$set(
+          this.form,
+          key.parameterName,
+          this.editData[key.parameterName]
+        );
+      }
+    },
+
     // 开启Dialog时
     openAllDialog() {
       getDepoTemplateById(this.template[0].id).then((res) => {
         this.parameter = res.data.data || [];
         this.createRules();
+        this.editFormData();
       });
     },
+
     // 关闭Dialog时
     closeAllDialog() {
+      console.log(this.parameter);
+      console.log(this.form);
       this.$emit("updateAllDialog", false);
+    },
+
+    // 录入存证信息
+    setDepositoryContent() {
+      saveDepositoryContent(this.form).then((res) => {
+        if (res.data.code === 0) {
+        } else {
+          this.$message({
+            message: this.$chooseLang(res.data.code),
+            type: "error",
+            duration: 2000,
+          });
+        }
+      });
+    },
+
+    // 编辑存证列表信息
+    editDepositoryContent(data) {
+      modifyDepositoryContent(data).then((res) => {
+        if (res.data.code === 0) {
+        } else {
+          this.$message({
+            message: this.$chooseLang(res.data.code),
+            type: "error",
+            duration: 2000,
+          });
+        }
+      });
     },
 
     // 提交Dialog
     submitAllDialog(formName) {
-      console.log(this.form.depositoryContentForm);
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          saveDepositoryContent(this.form).then((res) => {
-            if (res.data.code === 0) {
-            } else {
-              this.$message({
-                message: this.$chooseLang(res.data.code),
-                type: "error",
-                duration: 2000,
+          switch (this.flag) {
+            case 0:
+              setDepositoryContent();
+              break;
+            case 1:
+              editDepositoryContent({
+                chainId: this.id.appChainId,
+                contractId: this.id.contractNameId,
+                depositoryTemplateId: this.id.templateId,
+                params: [
+                  {
+                    parameterName: "string",
+                    parameterType: "string",
+                    parameterValue: "string",
+                  },
+                ],
               });
-            }
-          });
+              break;
+            case 2:
+              break;
+          }
         } else {
           return false;
         }
@@ -194,7 +256,6 @@ export default {
             break;
         }
       }
->>>>>>> lq
     },
   },
 
@@ -210,38 +271,9 @@ export default {
           return "数据校验";
       }
     },
-
-    // 表头数据
-    parameterList() {
-      let parameterListArr = [];
-      for (let key of this.parameter) {
-        parameterListArr.push(key.parameterName);
-      }
-      return parameterListArr;
-    },
-
-    // 表头类型
-    parameterType() {
-      let parameterTypeArr = [];
-      for (let key of this.parameter) {
-        parameterTypeArr.push(key.parameterType);
-      }
-      return parameterTypeArr;
-    },
-
-    // 验证规则
-    parameterRules() {
-      let rules = {
-        parameter: [
-          {
-            required: true,
-            message: this.$t("depository.selectContract"),
-            trigger: "blur",
-          },
-        ],
-      };
-      return rules;
-    },
+  },
+  mounted() {
+    this.openAllDialog();
   },
 };
 </script>
