@@ -3,32 +3,61 @@
     <el-dialog
       :title="allDialogTitle"
       :visible.sync="dialogFormVisible"
+      :close-on-click-modal="false"
       @open="openAllDialog"
       @close="closeAllDialog"
       center
+      width="498px"
     >
-      <el-form :model="form">
-        <el-form-item label="活动名称" :label-width="formLabelWidth">
-          <el-input v-model="form.name" autocomplete="off"></el-input>
+      <el-form
+        :model="form.depositoryContentForm"
+        ref="ruleForm"
+        label-width="100px"
+        class="selectForm"
+        :rules="rules"
+      >
+        <el-form-item :label="$t('depository.templateName')">
+          <el-input :placeholder="templateName" :disabled="true"></el-input>
         </el-form-item>
-        <el-form-item label="活动区域" :label-width="formLabelWidth">
-          <el-select v-model="form.region" placeholder="请选择活动区域">
-            <el-option label="区域一" value="shanghai"></el-option>
-            <el-option label="区域二" value="beijing"></el-option>
-          </el-select>
+
+        <el-form-item
+          v-for="item in parameter"
+          :key="item.parameterName"
+          :label="item.parameterName"
+          :prop="item.parameterName"
+        >
+          <el-input
+            v-model="form.depositoryContentForm[item.parameterName]"
+            v-if="item.parameterType !== 'file'"
+          ></el-input>
+          <!-- <el-button type="file" v-else>{{ $t("text.upLoadFile") }}</el-button> -->
+          <el-upload
+            v-else
+            class="upload-demo"
+            ref="upload"
+            action="https://jsonplaceholder.typicode.com/posts/"
+            :auto-upload="false"
+            :limit="1"
+          >
+            <el-button slot="trigger" size="small" type="primary"
+              >选取文件</el-button
+            >
+            <div slot="tip" class="el-upload__tip"></div>
+          </el-upload>
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisible = false"
-          >确 定</el-button
-        >
+      <div class="dialog-footer">
+        <el-button @click="closeAllDialog">{{ $t("text.cancel") }}</el-button>
+        <el-button @click="submitAllDialog('ruleForm')" type="primary">{{
+          $t("text.sure")
+        }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import { getDepoTemplateById, saveDepositoryContent } from "@/util/api";
 export default {
   props: {
     // 控制Dialog是否显示
@@ -43,59 +72,128 @@ export default {
       required: true,
     },
     // 存证模板Id
-    templateId: {
-      type: String,
+    template: {
+      type: Array,
     },
   },
   data() {
     return {
       dialogFormVisible: this.visible, //控制dialog是否显示
-      gridData: [
-        {
-          date: "2016-05-02",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-        {
-          date: "2016-05-04",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-        {
-          date: "2016-05-01",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-        {
-          date: "2016-05-03",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-      ],
-      dialogTableVisible: false,
-      dialogFormVisible: false,
+      templateName: null, //存证模板名称
+      parameter: {},
+      rules: {}, //验证规则
       form: {
-        name: "",
-        region: "",
-        date1: "",
-        date2: "",
-        delivery: false,
-        type: [],
-        resource: "",
-        desc: "",
+        //表单数据
+        depositoryContentForm: {},
       },
-      formLabelWidth: "120px",
     };
+  },
+
+  watch: {
+    visible() {
+      this.dialogFormVisible = this.visible;
+    },
+    template() {
+      this.templateName = this.template[0].name;
+    },
   },
 
   methods: {
     // 开启Dialog时
     openAllDialog() {
-      console.log(123);
+      getDepoTemplateById(this.template[0].id).then((res) => {
+        this.parameter = res.data.data || [];
+        this.createRules();
+      });
     },
     // 关闭Dialog时
     closeAllDialog() {
       this.$emit("updateAllDialog", false);
+    },
+
+    // 提交Dialog
+    submitAllDialog(formName) {
+      console.log(this.form.depositoryContentForm);
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          saveDepositoryContent(this.form).then((res) => {
+            if (res.data.code === 0) {
+            } else {
+              this.$message({
+                message: this.$chooseLang(res.data.code),
+                type: "error",
+                duration: 2000,
+              });
+            }
+          });
+        } else {
+          return false;
+        }
+      });
+    },
+
+    // 创建验证规则
+    createRules() {
+      for (let key of this.parameter) {
+        switch (key.parameterType) {
+          case "string":
+            this.rules[key.parameterName] = [
+              {
+                required: true,
+                message: `${this.$t("depository.inputFormElement")}${
+                  key.parameterName
+                }`,
+                trigger: "blur",
+              },
+            ];
+            break;
+          case "int":
+            this.rules[key.parameterName] = [
+              {
+                required: true,
+                message: `${this.$t("depository.inputFormElement")}${
+                  key.parameterName
+                }`,
+                trigger: "blur",
+              },
+              {
+                pattern: /^[0-9]*$/,
+                message: `${key.parameterName}${this.$t("depository.ruleInt")}`,
+                trigger: "blur",
+              },
+            ];
+            break;
+          case "float":
+            this.rules[key.parameterName] = [
+              {
+                required: true,
+                message: `${this.$t("depository.inputFormElement")}${
+                  key.parameterName
+                }`,
+                trigger: "blur",
+              },
+              {
+                pattern: /^[0-9]+([.][0-9]{1,})?$/,
+                message: `${key.parameterName}${this.$t(
+                  "depository.ruleFloat"
+                )}`,
+                trigger: "blur",
+              },
+            ];
+            break;
+          case "file":
+            this.rules[key.parameterName] = [
+              {
+                required: true,
+                message: `${key.parameterName}${this.$t(
+                  "depository.fileRequired"
+                )}`,
+                trigger: "blur",
+              },
+            ];
+            break;
+        }
+      }
     },
   },
 
@@ -115,5 +213,12 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
+.dialog-footer {
+  text-align: right;
+}
+.selectForm >>> .el-form-item__label {
+  font-size: 12px;
+  font-family: "Courier New", Courier, monospace;
+}
 </style>
