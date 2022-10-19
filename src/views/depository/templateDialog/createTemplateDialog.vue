@@ -276,6 +276,7 @@ export default {
       getAppChain4Depo()
         .then((res) => {
           if (res.data.code === 0) {
+
             this.appChainDialogList = res.data.data;
           } else {
             this.$message({
