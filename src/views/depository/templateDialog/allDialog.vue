@@ -3,32 +3,40 @@
     <el-dialog
       :title="allDialogTitle"
       :visible.sync="dialogFormVisible"
+      :close-on-click-modal="false"
       @open="openAllDialog"
       @close="closeAllDialog"
       center
+      width="498px"
     >
-      <el-form :model="form">
-        <el-form-item label="活动名称" :label-width="formLabelWidth">
-          <el-input v-model="form.name" autocomplete="off"></el-input>
+      <el-form
+        :model="form"
+        ref="ruleForm"
+        label-width="100px"
+        class="selectForm"
+      >
+        <el-form-item :label="$t('depository.templateName')">
+          <el-input :placeholder="templateName" :disabled="true"></el-input>
         </el-form-item>
-        <el-form-item label="活动区域" :label-width="formLabelWidth">
-          <el-select v-model="form.region" placeholder="请选择活动区域">
-            <el-option label="区域一" value="shanghai"></el-option>
-            <el-option label="区域二" value="beijing"></el-option>
-          </el-select>
+
+        <el-form-item>
+          <el-input
+            v-for="item in parameter"
+            :key="item.parameterName"
+            :label="item.parameterName"
+          ></el-input>
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisible = false"
-          >确 定</el-button
-        >
+      <div class="dialog-footer">
+        <el-button @click="closeAllDialog">{{ $t("text.cancel") }}</el-button>
+        <el-button type="primary">{{ $t("text.sure") }}</el-button>
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script>
+import { getDepoTemplateById } from "@/util/api";
 export default {
   props: {
     // 控制Dialog是否显示
@@ -43,37 +51,13 @@ export default {
       required: true,
     },
     // 存证模板Id
-    templateId: {
-      type: String,
-    },
+    template: {},
   },
   data() {
     return {
       dialogFormVisible: this.visible, //控制dialog是否显示
-      gridData: [
-        {
-          date: "2016-05-02",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-        {
-          date: "2016-05-04",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-        {
-          date: "2016-05-01",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-        {
-          date: "2016-05-03",
-          name: "王小虎",
-          address: "上海市普陀区金沙江路 1518 弄",
-        },
-      ],
-      dialogTableVisible: false,
-      dialogFormVisible: false,
+      templateName: this.template.name,
+      parameter: [],
       form: {
         name: "",
         region: "",
@@ -84,14 +68,25 @@ export default {
         resource: "",
         desc: "",
       },
-      formLabelWidth: "120px",
+      formLabelWidth: "100px",
     };
+  },
+
+  watch: {
+    visible() {
+      this.dialogFormVisible = this.visible;
+    },
+    template() {
+      this.templateName = this.template.name;
+    },
   },
 
   methods: {
     // 开启Dialog时
     openAllDialog() {
-      console.log(123);
+      getDepoTemplateById(this.template.id).then((res) => {
+        this.paramete = res.data.data;
+      });
     },
     // 关闭Dialog时
     closeAllDialog() {

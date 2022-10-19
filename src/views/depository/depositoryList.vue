@@ -5,7 +5,7 @@
         <el-form :inline="true" label-width="60px" class="search-form">
           <el-form-item :label="$t('blockchain4App.appChain')">
             <el-select
-              v-model="appChainId"
+              v-model="appChain"
               style="width: 140px"
               @change="handleAppChainChange"
             >
@@ -13,7 +13,7 @@
                 v-for="item in appChainList"
                 :key="item.id"
                 :label="item.name"
-                :value="item.id"
+                :value="item"
               >
               </el-option>
             </el-select>
@@ -23,7 +23,7 @@
         <el-form :inline="true" label-width="60px" class="search-form">
           <el-form-item :label="$t('contracts.contractName')">
             <el-select
-              v-model="contractNameId"
+              v-model="contractName"
               style="width: 140px"
               @change="handleContractNameChange"
             >
@@ -31,7 +31,7 @@
                 v-for="item in contractNameList"
                 :key="item.id"
                 :label="item.name"
-                :value="item.id"
+                :value="item"
               >
               </el-option>
             </el-select>
@@ -41,7 +41,7 @@
         <el-form :inline="true" label-width="60px" class="search-form">
           <el-form-item :label="$t('depository.template')">
             <el-select
-              v-model="templateId"
+              v-model="template"
               style="width: 140px"
               @change="handleTemplateChange"
             >
@@ -49,7 +49,7 @@
                 v-for="item in templateList"
                 :key="item.id"
                 :label="item.name"
-                :value="item.id"
+                :value="item"
               >
               </el-option>
             </el-select>
@@ -114,16 +114,15 @@
     >
     </el-pagination>
     <CreateTemplateDialog
+      v-if="createTemplateDialogVisible"
       :createTemplateDialogVisible.sync="createTemplateDialogVisible"
       @updateTemplateDialog="changeTemplateDialog"
-      :appChainList="appChainDialogList"
-      v-if="createTemplateDialogVisible"
       @getSelectTemplateName="getSelectTemplateName"
     ></CreateTemplateDialog>
     <AllDialog
       :visible.sync="allDialogVisible"
       :flag="allDialogFlag"
-      :templateId="templateId"
+      :template="template"
       @updateAllDialog="changeAllDialog"
     ></AllDialog>
   </div>
@@ -151,9 +150,9 @@ export default {
 
   data() {
     return {
-      appChainId: "", //被选中应用链Id
-      contractNameId: "", //被选中合约Id
-      templateId: "", //被选中存证模板Id
+      appChain: "", //被选中应用链
+      contractName: "", //被选中合约
+      template: "", //被选中存证模板
       appChainList: [], //应用链列表
       contractNameList: [], // 合约名称列表
       templateList: [], //存证模板列表
@@ -165,7 +164,6 @@ export default {
       TableHeaderFlag: false, //存证模板表格表头是否显示
 
       createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
-      appChainDialogList: [], //点击新建存证模板获取应用链数据
       allDialogVisible: false, //录入存证信息、编辑、数据校验Dialog是否显示
       allDialogFlag: 0, //区分  0录入存证信息、 1编辑、 2数据校验 Dialog标识
     };
@@ -229,13 +227,19 @@ export default {
       this.allDialogFlag = flag;
     },
 
+    // 切换录入存证信息、编辑、数据校验Dialog是否显示
+    changeAllDialog(val, flag = 0) {
+      this.allDialogVisible = val;
+      this.allDialogFlag = flag;
+    },
+
     // 获取应用链下拉数据
     async getSelectAppChain() {
       const res = await getAppChain4Depo();
       if (res.data.code === 0) {
         this.appChainList = res.data.data;
         if (this.appChainList.length > 0) {
-          this.appChainId = res.data.data[0].id;
+          this.appChain = res.data.data[0];
           this.getSelectContractName();
         }
       } else {
@@ -249,11 +253,11 @@ export default {
 
     // 获取合约名称下拉数据
     async getSelectContractName() {
-      const res = await getContractsByChain(this.appChainId);
+      const res = await getContractsByChain(this.appChain.id);
       if (res.data.code === 0) {
         this.contractNameList = res.data.data;
         if (this.contractNameList.length > 0) {
-          this.contractNameId = res.data.data[0].id;
+          this.contractName = res.data.data[0];
           this.getSelectTemplateName();
         }
       } else {
@@ -268,11 +272,11 @@ export default {
     // 获取存证模板下拉数据
     async getSelectTemplateName() {
       this.currentPage = 1;
-      const res = await getDepoTemplateByContract(this.contractNameId);
+      const res = await getDepoTemplateByContract(this.contractName.id);
       if (res.data.code === 0) {
         this.templateList = res.data.data;
         if (this.templateList.length > 0) {
-          this.templateId = res.data.data[0].id;
+          this.template = res.data.data[0];
           this.getDepositoryData();
         }
       } else {
@@ -290,7 +294,7 @@ export default {
         const depositoryListData = await getDepositoryList({
           pageNumber: this.currentPage,
           pageSize: this.pageSize,
-          templateId: this.templateId,
+          templateId: this.template.id,
         });
 
         // 列表表头数据
