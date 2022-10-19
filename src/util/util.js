@@ -322,7 +322,7 @@ export function rgb() {
 /**
  * 将JSON数据转换为FormData，允许传入多层嵌套对象
  * 
- * @param {Object} obj 传入需要转换的json对象
+ * @param {Object} obj 传入需要转换的json数据
  * @return {String} 返回FormData数据
  */
 export function JSONSwitchFormData(JSONData) {

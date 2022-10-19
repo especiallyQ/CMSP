@@ -310,6 +310,7 @@ export default {
     },
   },
   methods: {
+    //验证拷贝合约模板的名字和版本号是否为空
     valiData(e, key) {
       switch (key) {
         case "inputContractTemplateName":
@@ -334,6 +335,7 @@ export default {
           break;
       }
     },
+    //合约模板拷贝后点击确定按钮触发的事件
     async dialogSelectBtn(flag) {
       if (flag) {
         if (!this.copyTemplateNameWarn && !this.copyTemplateVersionWarn) {
@@ -352,7 +354,6 @@ export default {
               let formData = JSONSwitchFormData(requestData)
 
               const { data } = await copyContractTemplateVersion(formData);
-              console.log(data);
               if (data.code == 202145) {
                 this.$message({
                   message: chooseLang(data.code),
@@ -377,11 +378,13 @@ export default {
         return (this.dialogShow = false);
       }
     },
+    //全选按钮触发事件
     handleCheckAllChange(val) {
       this.checkedList = val ? this.templateVersionList.data : [];
       this.checkNum = this.checkedList.length;
       this.isIndeterminate = false;
     },
+    //点击多选触发的事件，参考element-checkBox
     handleCheckedCitiesChange(value) {
       this.checkNum = value.length;
       let checkedCount = value.length;
@@ -389,6 +392,7 @@ export default {
       this.isIndeterminate =
         checkedCount > 0 && checkedCount < this.templateVersionList.data.length;
     },
+    //点击合约版本下载按钮触发的事件
     async downloadContractTemplate(id) {
       let { data } = await downloadContractTemplateVersion(id);
       var blob = new Blob([data], {
@@ -404,12 +408,13 @@ export default {
       a.click();
       document.body.removeChild(a);
     },
+    //点击合约模板拷贝按钮触发的事件
     copyContractTamplateVersion(obj, vObj) {
-      console.log(obj, vObj);
-
+      //合约模板名称和版本提示清空
       this.copyTemplateNameWarn = "";
       this.copyTemplateVersionWarn = "";
-
+      
+      //获取原模板信息
       this.copyReqData.templateName = obj.templateName;
       this.originTemplateName = obj.templateName;
 
@@ -424,10 +429,12 @@ export default {
 
       this.copyReqData.id = vObj.id;
       this.copyReqData.templateId = vObj.templateId;
-
       this.copyReqData.templateSource = vObj.templateSource;
+
+      //关闭抽屉
       this.dialogShow = !this.dialogShow;
     },
+    //根据按钮传来的name决定触发对应事件
     async drawerNavBtn(e, id, name, Obj, vObj) {
       switch (name) {
         case "downloadContractTemplate":
