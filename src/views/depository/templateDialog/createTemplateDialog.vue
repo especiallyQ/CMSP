@@ -24,9 +24,9 @@
             filterable
           >
             <el-option
+              v-for="key in appChainDialogList"
               :label="key.name"
               :value="key.id"
-              v-for="key in appChainList"
               :key="key.id"
             ></el-option>
           </el-select>
@@ -154,7 +154,12 @@
 </template>
 
 <script>
-import { getContractsByChain, saveDepoTemplate } from "@/util/api";
+import {
+  getContractsByChain,
+  saveDepoTemplate,
+  getAppChain4Depo,
+} from "@/util/api";
+
 export default {
   name: "createTemplateDialog",
   props: {
@@ -163,16 +168,14 @@ export default {
       default: false,
       required: true,
     },
-    appChainList: {
-      type: Array,
-      default: [],
-    },
   },
   data() {
     return {
       dialogFormVisible: this.createTemplateDialogVisible, //控制dialog是否显示
       loading: false,
+      appChainDialogList: [], //应用链名称列表
       contractNameList: [], // 合约名称列表
+      fileDisabled: false,
       form: {
         appChainId: null, //所选应用链Id
         contractId: null, // 所选合约列表Id
@@ -243,8 +246,14 @@ export default {
     };
   },
   watch: {
-    visible() {
-      this.dialogFormVisible = this.visible;
+    createTemplateDialogVisible() {
+      this.dialogFormVisible = this.createTemplateDialogVisible;
+    },
+    "parameterParamsForm.parameterParams2": {
+      handler() {
+        this.changeFileDisabled();
+      },
+      deep: true,
     },
   },
 
@@ -257,7 +266,34 @@ export default {
     },
   },
 
+  mounted() {
+    this.open();
+  },
+
   methods: {
+    // 开启新建存证模板时触发
+    open() {
+      getAppChain4Depo()
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.appChainDialogList = res.data.data;
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
+        });
+    },
+
     // 关闭新建存证模板时触发
     close() {
       this.$emit("updateTemplateDialog", false);
@@ -340,7 +376,6 @@ export default {
     async addDepositoryTemplate(data) {
       this.loading = true;
       const res = await saveDepoTemplate(data);
-      console.log(res);
       if (res.data.code === 0) {
         this.$emit("getSelectTemplateName");
         this.close();
@@ -358,10 +393,12 @@ export default {
     changeFileDisabled() {
       for (let i = 0; i < this.params.length; i++) {
         if (this.params[i].parameterType === "file") {
-          this.parameterOption[3].disabled = true;
+          this.parameterOption[this.parameterOption.length - 1].disabled = true;
           break;
         } else {
-          this.parameterOption[3].disabled = false;
+          this.parameterOption[
+            this.parameterOption.length - 1
+          ].disabled = false;
         }
       }
     },

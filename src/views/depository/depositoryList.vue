@@ -114,16 +114,15 @@
     >
     </el-pagination>
     <CreateTemplateDialog
+      v-if="createTemplateDialogVisible"
       :createTemplateDialogVisible.sync="createTemplateDialogVisible"
       @updateTemplateDialog="changeTemplateDialog"
-      :appChainList="appChainDialogList"
-      v-if="createTemplateDialogVisible"
       @getSelectTemplateName="getSelectTemplateName"
     ></CreateTemplateDialog>
     <AllDialog
       :visible.sync="allDialogVisible"
       :flag="allDialogFlag"
-      :templateId="templateId"
+      :template="allDialogTemplateData"
       @updateAllDialog="changeAllDialog"
     ></AllDialog>
   </div>
@@ -165,9 +164,9 @@ export default {
       TableHeaderFlag: false, //存证模板表格表头是否显示
 
       createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
-      appChainDialogList: [], //点击新建存证模板获取应用链数据
       allDialogVisible: false, //录入存证信息、编辑、数据校验Dialog是否显示
       allDialogFlag: 0, //区分  0录入存证信息、 1编辑、 2数据校验 Dialog标识
+      allDialogTemplateData: null, //当前存证模板信息
     };
   },
 
@@ -200,31 +199,14 @@ export default {
     // 切换新建存证模板Dialog是否显示
     async changeTemplateDialog(val) {
       this.createTemplateDialogVisible = val;
-      if (val) {
-        getAppChain4Depo()
-          .then((res) => {
-            if (res.data.code === 0) {
-              this.appChainDialogList = res.data.data;
-            } else {
-              this.$message({
-                message: this.$chooseLang(res.data.code),
-                type: "error",
-                duration: 2000,
-              });
-            }
-          })
-          .catch(() => {
-            this.$message({
-              message: this.$t("text.systemError"),
-              type: "error",
-              duration: 2000,
-            });
-          });
-      }
     },
 
     // 切换录入存证信息、编辑、数据校验Dialog是否显示
     changeAllDialog(val, flag = 0) {
+      this.allDialogTemplateData = this.templateList.filter((item) => {
+        return item.id === this.templateId;
+      });
+
       this.allDialogVisible = val;
       this.allDialogFlag = flag;
     },
@@ -329,10 +311,12 @@ export default {
   },
 
   mounted() {
+    // 获取应用链数据
     this.getSelectAppChain();
   },
 
   computed: {
+    // 计算最后渲染表头信息
     tableHeader() {
       let data = [
         {
