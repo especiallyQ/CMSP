@@ -136,10 +136,10 @@
         v-if="allDialogVisible"
         :visible.sync="allDialogVisible"
         :flag="allDialogFlag"
-        :template="allDialogTemplateData"
-        @updateAllDialog="changeAllDialog"
+        :templateName="allDialogTemplateData[0].name"
         :editData="editData"
-        @id="id"
+        :id="id"
+        @updateAllDialog="changeAllDialog"
       ></AllDialog>
     </div>
   </div>
@@ -229,6 +229,9 @@ export default {
       this.allDialogTemplateData = this.templateList.filter((item) => {
         return item.id === this.id.templateId;
       });
+      if (!val && flag) {
+        this.getDepositoryData();
+      }
       this.editData = data;
       this.allDialogVisible = val;
       this.allDialogFlag = flag;
@@ -299,6 +302,7 @@ export default {
 
     // 获取存证列表数据
     async getDepositoryData() {
+      this.loading = true;
       if (this.templateList.length > 0) {
         const depositoryListData = await getDepositoryList({
           pageNumber: this.currentPage,
