@@ -327,6 +327,7 @@ export function rgb() {
  */
 export function JSONSwitchFormData(JSONData) {
     let formData = new FormData()
+    
     function switchFn(JSONData) {
         Object.keys(JSONData).forEach((key) => {
             if(Array.isArray(JSONData[key])){

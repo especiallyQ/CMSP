@@ -49,6 +49,7 @@
           @changeHandleCurrent="changeHandleCurrent"
           @changeHandleSize="changeHandleSize"
           :propTotalNum="contractTemplateList.totalCount"
+          :propCurrentPage.sync="requestData.pageNumber"
         />
       </el-card>
     </div>
@@ -66,6 +67,75 @@
         :propCurrentObj="drawer.currentObj"
       />
     </el-drawer>
+    <el-dialog
+      :title="dialog.title"
+      class="dialog"
+      :visible.sync="dialog.dialogShow"
+      width="30%"
+      center
+      :before-close="beforeCloseDialog"
+      :close-on-click-modal="false"
+    >
+      <div class="dialog-body">
+        <p>
+          <span style="color: red">*</span
+          ><span class="dialog-line-title">{{
+            this.$t("contracts.contractTemplateName")
+          }}</span
+          ><el-input
+            @blur="valiData($event, 'inputContractTemplateName')"
+            v-model="updateOriginData.templateName"
+            :placeholder="this.$t('contracts.inputContractTemplateName')"
+          ></el-input>
+          <span class="warning">
+            <div>
+              {{ updateTemplateNameWarn }}
+            </div>
+          </span>
+        </p>
+        <p>
+          <span style="color: red">*</span
+          ><span class="dialog-line-title">{{
+            this.$t("contracts.contractTemplateVisibility")
+          }}</span>
+          <el-select
+            v-model="updateOriginData.permisseSelectValue"
+            placeholder="请选择"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="(obj, index) in versionList"
+              :key="obj[index]"
+              :label="$t(`permission.${obj[index]}`)"
+              :value="$t(`permission.${obj[index]}`)"
+            >
+            </el-option>
+          </el-select>
+        </p>
+        <p>
+          <span
+            class="
+              dialog-line-title dialog-line-title-contractTemplateDescription
+            "
+            >{{ this.$t("contracts.contractTemplateDescription") }}</span
+          ><el-input
+            type="textarea"
+            :rows="5"
+            resize="none"
+            v-model="updateOriginData.description"
+            :placeholder="this.$t('contracts.inputContractTemplateDescription')"
+          ></el-input>
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="updateTemplateSelectBtn($event, false)"
+          >取 消</el-button
+        >
+        <el-button type="primary" @click="updateTemplateSelectBtn($event, true)"
+          >确 定</el-button
+        >
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -81,6 +151,13 @@ import PaginationView from "@/components/paginationView.vue";
 import SmallView from "./components/smallView.vue";
 import ContractDrawerBody from "./components/contractDrawerBody/contractDrawerBody.vue";
 import { permissionKeys, root as Root } from "@/util/permissionConstant";
+import {
+  deleteContractTemplate,
+  addContractTemplate,
+  modifyContractTemplate,
+} from "@/util/api";
+import { chooseLang } from "@/util/errcode";
+import { getDate } from "@/util/util";
 
 import { rgb } from "@/util/util";
 
@@ -124,8 +201,30 @@ export default {
         canDo: false,
         creator: "",
         description: "",
-        currentObj:{}
+        currentObj: {},
       },
+      dialog: {
+        title: "",
+        dialogShow: false,
+      },
+      updateOriginData: {
+        id: "",
+        templateName: "",
+        description: "",
+        permisseSelectValue: "",
+        creatorId: "",
+        creator: "",
+        accountGroupName: "",
+        accountGroupId: "",
+        visibility: 0,
+        createTime: "",
+        modifyTime: "",
+        operatorId: "",
+        versionCount: "",
+      },
+      versionList: [{ 0: "all" }, { 1: "group" }, { 2: "owner" }],
+      updateTemplateNameWarn: "",
+      updateTemplateVersionWarn: "",
     };
   },
   computed: {
@@ -136,7 +235,6 @@ export default {
             this.$store.state.contractTemplate.contractTemplateData.data;
           let dataLen = this.getArrayLenth(data);
           let newDataList = [];
-
           for (let i = 0; i < dataLen; i++) {
             let obj = {
               templateName: "",
@@ -240,6 +338,12 @@ export default {
             // 添加创建者字段
             obj.creator = data[i].creator || "";
 
+            //添加用于按钮字段的数据
+            obj.creatorId = data[i].creatorId || "";
+            obj.accountGroupName = data[i].accountGroupName || "";
+            obj.accountGroupId = data[i].accountGroupId || "";
+            obj.createTime = data[i].createTime || "";
+
             //i18n转换
             for (let key in data[i]) {
               if (this.showDataList[key]) {
@@ -277,12 +381,43 @@ export default {
           };
         } catch (e) {}
       },
-      set(pageSize) {
-        this.pageSize = pageSize;
+      set() {
+        return {}
+      },
+    },
+    originVisibilityId: {
+      get() {
+        let versionObj = this.versionList.filter((obj, index) => {
+          return (
+            this.$t(`permission.${obj[index]}`) ==
+            this.updateOriginData.permisseSelectValue
+          );
+        })[0];
+        if (versionObj) {
+          return Object.keys(versionObj)[0];
+        }
       },
     },
   },
   methods: {
+    valiData(e, key) {
+      switch (key) {
+        case "inputContractTemplateName":
+          if (
+            !this.updateOriginData.templateName ||
+            this.updateOriginData.templateName.length > 30
+          ) {
+            this.updateTemplateNameWarn = this.$t(
+              "contracts.inputContractTemplateName"
+            );
+          } else {
+            this.updateTemplateNameWarn = "";
+          }
+          break;
+        default:
+          break;
+      }
+    },
     getRgb() {
       return rgb();
     },
@@ -327,19 +462,245 @@ export default {
       }
       return arr.length;
     },
-    navBtnClick(e, key, id, templateName, versionCount, creator, description, currentObj) {
+    viewContractTemplateVersion(
+      id,
+      templateName,
+      versionCount,
+      creator,
+      description,
+      currentObj
+    ) {
       this.drawer.showFlag = !this.drawer.showFlag;
       this.drawer.title = templateName;
       this.drawer.versionCount = versionCount;
       this.drawer.creator = creator;
       this.drawer.description = description;
-      this.drawer.currentObj = currentObj
+      this.drawer.currentObj = currentObj;
 
       this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
         templateId: id,
       });
     },
-    createContract(e) {},
+    async deleteTemplate(id, templateName) {
+      this.$confirm(
+        `${this.$t("text.confirmDelete")}${this.$t(
+          "title.contractTemplate"
+        )}${templateName}?`,
+        {
+          confirmButtonText: this.$t("text.sure"),
+          cancelButtonText: this.$t("text.cancel"),
+          center: true,
+        }
+      )
+        .then(async () => {
+          try {
+            const { data } = await deleteContractTemplate(id);
+            if (data.code == "202181") {
+              this.$message.error({
+                message: chooseLang("202181"),
+              });
+            } else {
+              this.$message({
+                message: this.$t("text.resetSuccess"),
+                type: "success",
+              });
+              this.requestData.pageNumber = 1;
+              this.getContractTemplateList();
+            }
+          } catch (e) {}
+        })
+        .catch(() => {});
+    },
+    updateTemplate(
+      id,
+      templateName,
+      versionCount,
+      creator,
+      description,
+      currentObj
+    ) {
+      this.dialog.title = this.$t("contracts.contractTemplateModifyText");
+      this.dialog.dialogShow = true;
+
+      this.updateOriginData.permisseSelectValue =
+        currentObj.data[this.$t("table.templateVisibilityShort")];
+      this.updateOriginData.templateName = templateName;
+      this.updateOriginData.description =
+        description == this.$t("text.noRemark") ? "" : description;
+
+      this.updateOriginData.id = id;
+      this.updateOriginData.modifyTime = getDate(Date.now());
+      this.updateOriginData.operatorId = localStorage.getItem("userId");
+      this.updateOriginData.versionCount = versionCount;
+      this.updateOriginData.creatorId = currentObj.creatorId;
+      this.updateOriginData.creator = creator;
+      this.updateOriginData.accountGroupName = currentObj.accountGroupName;
+      this.updateOriginData.accountGroupId = currentObj.accountGroupId;
+      this.updateOriginData.createTime = currentObj.createTime;
+    },
+    createContract(e) {
+      this.dialog.title = this.$t("contracts.contractTemplateAddText");
+      this.dialog.dialogShow = true;
+
+      this.updateOriginData.permisseSelectValue = this.$t("permission.all");
+      this.updateOriginData.templateName = "";
+      this.updateOriginData.description = "";
+    },
+    updateTemplateSelectBtn(e, flag) {
+      const contractTemplateAddText = async () => {
+        let requestData = {
+          templateName: this.updateOriginData.templateName,
+          visibility: this.originVisibilityId,
+          description: this.updateOriginData.description,
+        };
+
+        try {
+          const { data } = await addContractTemplate(requestData);
+
+          if (data.code == 0) {
+            this.$message({
+              message: this.$t("text.addSuccess"),
+              type: "success",
+            });
+
+            this.dialog.title = "";
+            this.dialog.dialogShow = false;
+            this.updateTemplateNameWarn = "";
+            this.updateTemplateVersionWarn = "";
+
+            this.getContractTemplateList();
+          } else if (data.code == 202145) {
+            this.$message.error({
+              message: chooseLang("202145"),
+            });
+          }
+        } catch (e) {
+          this.$message.error({
+            message: this.$t("text.systemError"),
+          });
+        }
+      };
+
+      const contractTemplateModifyText = async () => {
+        let requestData = {
+          id: this.updateOriginData.id,
+          templateName: this.updateOriginData.templateName,
+          visibility: this.originVisibilityId,
+          creatorId: this.updateOriginData.creatorId,
+          creator: this.updateOriginData.creator,
+          accountGroupName: this.updateOriginData.accountGroupName,
+          accountGroupId: this.updateOriginData.accountGroupId,
+          createTime: this.updateOriginData.createTime,
+          modifyTime: this.updateOriginData.modifyTime,
+          operatorId: this.updateOriginData.operatorId,
+          versionCount: this.updateOriginData.versionCount,
+        };
+        if (this.updateOriginData.description) {
+          requestData.description = this.updateOriginData.description;
+        }
+
+        try {
+          const { data } = await modifyContractTemplate(requestData);
+
+          if (data.code == 0) {
+            this.$message({
+              message: this.$t("text.addSuccess"),
+              type: "success",
+            });
+
+            this.dialog.title = "";
+            this.dialog.dialogShow = false;
+            this.updateTemplateNameWarn = "";
+            this.updateTemplateVersionWarn = "";
+            
+            this.getContractTemplateList();
+          } else {
+            this.$message.error({
+              message: this.$t("text.systemError"),
+            });
+          }
+        } catch (e) {
+          this.$message.error({
+            message: this.$t("text.systemError"),
+          });
+        }
+      };
+
+      if (flag) {
+        if (!this.updateOriginData.templateName) {
+          this.updateTemplateNameWarn = this.$t(
+            "contracts.inputContractTemplateName"
+          );
+        }
+        if (
+          !this.updateTemplateNameWarn &&
+          this.updateOriginData.templateName.length <= 30
+        ) {
+          switch (this.dialog.title) {
+            case this.$t("contracts.contractTemplateAddText"):
+              contractTemplateAddText();
+              break;
+            case this.$t("contracts.contractTemplateModifyText"):
+              contractTemplateModifyText();
+            default:
+              break;
+          }
+        }
+      } else {
+        this.dialog.title = "";
+        this.dialog.dialogShow = false;
+        this.updateTemplateNameWarn = "";
+        this.updateTemplateVersionWarn = "";
+      }
+    },
+    beforeCloseDialog() {
+      this.dialog.title = "";
+      this.dialog.dialogShow = false;
+      this.updateTemplateNameWarn = "";
+      this.updateTemplateVersionWarn = "";
+
+      this.updateOriginData.permisseSelectValue = "";
+      this.updateOriginData.templateName = "";
+      this.updateOriginData.description = "";
+    },
+    navBtnClick(
+      e,
+      key,
+      id,
+      templateName,
+      versionCount,
+      creator,
+      description,
+      currentObj
+    ) {
+      console.log(key);
+      switch (key) {
+        case "viewContractTemplateVersion":
+          this.viewContractTemplateVersion(
+            id,
+            templateName,
+            versionCount,
+            creator,
+            description,
+            currentObj
+          );
+          break;
+        case "deleteTemplate":
+          this.deleteTemplate(id, templateName);
+          break;
+        case "updateTemplate":
+          this.updateTemplate(
+            id,
+            templateName,
+            versionCount,
+            creator,
+            description,
+            currentObj
+          );
+        default:
+          break;
+      }
+    },
     handleClose() {
       this.drawer.showFlag = !this.drawer.showFlag;
       this.$store.commit(
@@ -373,6 +734,11 @@ export default {
   beforeDestroy() {
     window.removeEventListener("beforeunload", this.getContractTemplateList);
   },
+  provide() {
+    return {
+      requestDataProvide: this.requestData,
+    };
+  },
 };
 </script>
 
@@ -402,4 +768,46 @@ export default {
   flex-wrap: wrap;
 }
 
+.dialog {
+  width: 100vw;
+  min-width: 1000px;
+}
+
+.dialog-body {
+  width: 100%;
+}
+
+.dialog-body p {
+  position: relative;
+  display: flex;
+  white-space: nowrap;
+  line-height: 35px;
+}
+
+.dialog-body .dialog-line-title {
+  margin-right: 15px;
+  margin-bottom: 20px;
+  font-size: 10px;
+  margin-left: 4px;
+  font-weight: 300;
+}
+
+.dialog-body .dialog-line-title-contractTemplateDescription {
+  margin-left: 57px;
+}
+
+.dialog >>> .el-dialog__footer {
+  text-align: right;
+}
+
+.warning {
+  position: absolute;
+  width: 100px;
+  bottom: 10%;
+  left: 100px;
+  text-align: center;
+  font-size: 13px;
+  color: red;
+  height: 20px;
+}
 </style>

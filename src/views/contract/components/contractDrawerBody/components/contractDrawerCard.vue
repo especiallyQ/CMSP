@@ -40,7 +40,7 @@ export default {
   name: "contractDrawerCard",
   props: {
     propRemark: {
-      type: String || Array,
+      type: [String, Array],
       default: "备注",
       required: false,
     },

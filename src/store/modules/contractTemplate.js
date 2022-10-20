@@ -59,7 +59,6 @@ const actions = {
                         ...data
                     }
                     newData.data = filteList
-                    newData.totalCount = filteList.length
                     context.commit(mutationsKeys.SET_CONTRACT_TEMPLATE_LIST, {
                         belongTO: localStorage.getItem("user") || "",
                         data: newData,
@@ -78,13 +77,12 @@ const actions = {
         }
     },
     getTamplateVersionList: async (context, payLoad) => {
-        try{
+        try {
             const { data } = await queryContractTemplateVersionList({
-                templateId:payLoad.templateId
+                templateId: payLoad.templateId
             })
-            console.log(data);
             context.commit(mutationsKeys.SET_TEMPLATE_VERSION_LIST, data)
-        }catch(e){
+        } catch (e) {
             throw e
         }
     }

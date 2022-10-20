@@ -15,7 +15,13 @@
     </div>
     <div class="clearfix-container-right">
       <div>
-        <el-button type="primary" class="createNewContract" :class="{show:createBtnShow}" @click="onClick($event)">{{$t(`contracts.${contractTemplateAddText}`)}}</el-button>
+        <el-button
+          type="primary"
+          class="createNewContract"
+          :class="{ show: createBtnShow }"
+          @click="onClick($event)"
+          >{{ $t(`contracts.${contractTemplateAddText}`) }}</el-button
+        >
       </div>
       <div>
         <el-button-group>
@@ -44,29 +50,26 @@
 <script>
 export default {
   name: "contractHeader",
-  props:{
+  props: {
     propCreateBtnShow: {
-      type:Boolean,
+      type: Boolean,
       default: false,
-      required: false
-    }
+      required: false,
+    },
   },
   data() {
     return {
       isCollapse: true,
       changeAction: true,
-      contractTemplateAddText: "contractTemplateAddText"
+      contractTemplateAddText: "contractTemplateAddText",
     };
   },
-  computed:{
+  computed: {
     createBtnShow: {
-      get(){
-        return this.propCreateBtnShow
-      }
+      get() {
+        return this.propCreateBtnShow;
+      },
     },
-    onClick(e){
-      this.$emit("click",e)
-    }
   },
   methods: {
     searchCreater() {
@@ -75,10 +78,13 @@ export default {
     searchContractTemplate() {
       return this.$t("contracts.contractNameSearch");
     },
-    toggleViewMode(){
-      this.changeAction = !this.changeAction
-      this.$emit("toggleViewModeFn",this.changeAction)
-    }
+    toggleViewMode() {
+      this.changeAction = !this.changeAction;
+      this.$emit("toggleViewModeFn", this.changeAction);
+    },
+    onClick(e) {
+      this.$emit("click", e);
+    },
   },
 };
 </script>
@@ -176,8 +182,8 @@ export default {
 }
 
 .clearfix .clearfix-container-right .iconBtn:hover {
-  transition: opacity .1s;
-  opacity: .8;
+  transition: opacity 0.1s;
+  opacity: 0.8;
 }
 
 .clearfix .clearfix-container-right .cmsp-icon-caidan {

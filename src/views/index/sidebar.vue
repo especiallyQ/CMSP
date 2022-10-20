@@ -126,6 +126,7 @@ export default {
               message: this.$t("title.message"),
               backlog: this.$t("title.backlog"),
               contractTemplate: this.$t("title.contractTemplate"),
+              cmspEditor:this.$t("title.cmspEditor")
             }[it.nameKey];
           });
         }

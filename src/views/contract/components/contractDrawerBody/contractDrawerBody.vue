@@ -18,6 +18,7 @@
         size="small"
         class="deleteBtn"
         :disabled="!isCreator"
+        @click="batchDeleteVersion"
         >{{ $t("contracts.deleteVersion") }}</el-button
       >
     </div>
@@ -26,45 +27,79 @@
       v-model="checkedList"
       @change="handleCheckedCitiesChange"
     >
-      <ContractDrawerCard
-        v-for="obj in templateVersionList"
-        :key="obj.id"
-        :propRemark="description"
+      <transition-group tag="ul" name="slide">
+        <ContractDrawerCard
+          v-for="obj in templateVersionList"
+          :key="obj.id"
+          :propRemark="description"
+        >
+          <template v-slot:checkBox>
+            <el-checkbox :label="obj" :disabled="!isCreator"
+              ><span class="versionIcon">v</span
+              >{{ `${obj.templateVersion}` }}</el-checkbox
+            >
+          </template>
+          <template v-slot:checkBox2>
+            <BottomNav
+              v-for="(navObj, index) in obj.bottomList"
+              :key="index"
+              :propRemark="navObj.remark"
+              :propAction="navObj.propAction"
+              :propColor="navObj.propColor"
+              :propIconName="navObj.propIconName"
+              @click="
+                drawerNavBtn($event, obj.id, navObj.name, currentObj, obj)
+              "
+            />
+          </template>
+        </ContractDrawerCard>
+      </transition-group>
+      <el-button
+        type="primary"
+        :style="{ display: !isCreator ? 'none' : 'block' }"
+        class="addContractTemplateVersion"
+        key="addContractTemplateVersion"
+        @click="addContractVersion($event)"
+        >{{ $t("contracts.addContractTemplateVersion") }}</el-button
       >
-        <template v-slot:checkBox>
-          <el-checkbox :label="obj" :disabled="!isCreator"
-            ><span class="versionIcon">v</span
-            >{{ `${obj.templateVersion}` }}</el-checkbox
-          >
-        </template>
-        <template v-slot:checkBox2>
-          <BottomNav
-            v-for="(navObj, index) in obj.bottomList"
-            :key="index"
-            :propRemark="navObj.remark"
-            :propAction="navObj.propAction"
-            :propColor="navObj.propColor"
-            :propIconName="navObj.propIconName"
-            @click="drawerNavBtn($event, obj.id, navObj.name, currentObj, obj)"
-          />
-        </template>
-      </ContractDrawerCard>
-
-      <el-button type="primary" class="addContractTemplateVersion">{{
-        $t("contracts.addContractTemplateVersion")
-      }}</el-button>
 
       <el-dialog
-        :title="this.$t('contracts.contractTemplateVersionCopyText')"
+        :title="dialog.title"
         class="dialog"
-        :visible.sync="dialogShow"
+        :visible.sync="dialog.dialogShow"
         width="30%"
         :modal="false"
         center
         :close-on-click-modal="false"
       >
         <div class="dialog-body">
-          <p>
+          <p
+            v-if="
+              dialog.title ==
+              this.$t('contracts.contractTemplateVersionModifyText')
+            "
+          >
+            <span class="dialog-line-title">{{
+              this.$t("contracts.contractFileUpload")
+            }}</span>
+
+            <el-upload
+              class="upload-demo"
+              :action="upLoadUrl"
+              :file-list="fileList"
+            >
+              <el-button size="small" type="primary">点击上传</el-button>
+              <div slot="tip" class="el-upload__tip">
+                只能上传jpg/png文件，且不超过500kb
+              </div>
+            </el-upload>
+          </p>
+          <p
+            v-if="
+              dialog.title ==
+              this.$t('contracts.contractTemplateVersionCopyText')
+            "
+          >
             <span style="color: red">*</span
             ><span class="dialog-line-title">{{
               this.$t("contracts.contractTemplateName")
@@ -80,7 +115,12 @@
               </div>
             </span>
           </p>
-          <p>
+          <p
+            v-if="
+              dialog.title ==
+              this.$t('contracts.contractTemplateVersionCopyText')
+            "
+          >
             <span style="color: red">*</span
             ><span class="dialog-line-title">{{
               this.$t("contracts.contractTemplateVisibility")
@@ -105,6 +145,10 @@
               this.$t("contracts.contractTemplateVersion")
             }}</span
             ><el-input
+              :disabled="
+                dialog.title !==
+                this.$t('contracts.contractTemplateVersionCopyText')
+              "
               @blur="valiData($event, 'inputContractTemplateVersion')"
               v-model="copyReqData.templateVersion"
               :placeholder="this.$t('contracts.inputContractTemplateVersion')"
@@ -153,13 +197,27 @@ import {
 } from "@/util/api";
 import { root as Root } from "@/util/permissionConstant";
 import { chooseLang } from "@/util/errcode";
-import { JSONSwitchFormData } from '@/util/util'
+import { JSONSwitchFormData } from "@/util/util";
+import dispatchKeys from "@/util/storeKeys/contractTemplate/dispatchKeys";
+import {
+  batchDeleteContractTemplateVersion,
+  deleteContractTemplateVersion,
+} from "@/util/api";
+import url from '@/util/url';
 
 export default {
   name: "contractDrawer",
   components: {
     ContractDrawerCard,
     BottomNav,
+  },
+  inject: {
+    requestDataProvide: {
+      default: {
+        pageNumber: 1,
+        pageSize: 10,
+      },
+    },
   },
   props: {
     propCreator: {
@@ -168,7 +226,7 @@ export default {
       required: true,
     },
     propDescription: {
-      type: String,
+      type: [String, Array],
       default: "",
       required: true,
     },
@@ -182,11 +240,11 @@ export default {
   },
   data() {
     return {
+      upLoadUrl:url.ORG_LIST,
       checkAll: false,
       checkedList: [],
-      isIndeterminate: true,
+      isIndeterminate: false,
       checkNum: 0,
-      dialogShow: false,
       versionList: [{ 0: "all" }, { 1: "group" }, { 2: "owner" }],
       originTemplateName: "",
       copySelectValue: "",
@@ -201,14 +259,25 @@ export default {
         templateName: "",
         templateSource: "",
       },
+      dialog: {
+        dialogShow: false,
+        title: "",
+      },
     };
   },
   computed: {
+    fileList:{
+      get(){
+        let currentObj = this.currentObj
+        console.log(currentObj);
+        return currentObj
+      }
+    },
     templateVersionList: {
       get() {
         let versionList =
           this.$store.state.contractTemplate.templateVersionList.data;
-
+        console.log(versionList);
         let len = versionList ? versionList.length : 0;
 
         let user = localStorage.getItem("user");
@@ -298,7 +367,7 @@ export default {
         return this.propCurrentObj;
       },
     },
-    copyVisivility: {
+    copyVisibility: {
       get() {
         let versionObj = this.versionList.filter((obj, index) => {
           return this.$t(`permission.${obj[index]}`) == this.copySelectValue;
@@ -336,7 +405,7 @@ export default {
       }
     },
     //合约模板拷贝后点击确定按钮触发的事件
-    async dialogSelectBtn(flag) {
+    async dialogSelectBtn(e, flag) {
       if (flag) {
         if (!this.copyTemplateNameWarn && !this.copyTemplateVersionWarn) {
           try {
@@ -346,12 +415,18 @@ export default {
                 type: "warning",
               });
             } else {
+              if (!this.copyReqData.templateName) {
+                this.copyTemplateNameWarn = this.$t(
+                  "contracts.inputContractTemplateName"
+                );
+              }
+
               let requestData = {
                 ...this.copyReqData,
-                visibility: this.copyVisivility,
+                visibility: this.copyVisibility,
               };
 
-              let formData = JSONSwitchFormData(requestData)
+              let formData = JSONSwitchFormData(requestData);
 
               const { data } = await copyContractTemplateVersion(formData);
               if (data.code == 202145) {
@@ -364,7 +439,16 @@ export default {
                   message: this.$t("text.addSuccess"),
                   type: "success",
                 });
-                return (this.dialogShow = false);
+
+                this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                  requestData: this.requestDataProvide,
+                  requiredData: {
+                    creator: "",
+                    templateName: "",
+                  },
+                });
+                this.dialog.title = "";
+                return (this.dialog.dialogShow = false);
               }
             }
           } catch (e) {
@@ -375,25 +459,26 @@ export default {
           }
         }
       } else {
-        return (this.dialogShow = false);
+        return (this.dialog.dialogShow = false);
       }
     },
     //全选按钮触发事件
     handleCheckAllChange(val) {
-      this.checkedList = val ? this.templateVersionList.data : [];
-      this.checkNum = this.checkedList.length;
+      this.checkedList = val ? this.templateVersionList : [];
+      this.checkNum = this.checkedList ? this.checkedList.length : 0;
       this.isIndeterminate = false;
     },
     //点击多选触发的事件，参考element-checkBox
     handleCheckedCitiesChange(value) {
+      this.checkedList = value;
       this.checkNum = value.length;
       let checkedCount = value.length;
-      this.checkAll = checkedCount === this.templateVersionList.data.length;
+      this.checkAll = checkedCount === this.templateVersionList.length;
       this.isIndeterminate =
-        checkedCount > 0 && checkedCount < this.templateVersionList.data.length;
+        checkedCount > 0 && checkedCount < this.templateVersionList.length;
     },
     //点击合约版本下载按钮触发的事件
-    async downloadContractTemplate(id) {
+    async downloadContractTemplate(id, obj) {
       let { data } = await downloadContractTemplateVersion(id);
       var blob = new Blob([data], {
         type: "application/pdf;chartset=UTF-8",
@@ -403,7 +488,7 @@ export default {
       const url = window.URL.createObjectURL(blob);
 
       a.setAttribute("href", url);
-      a.setAttribute("download", "filename.zip");
+      a.setAttribute("download", `${obj.templateName}.zip`);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -411,9 +496,11 @@ export default {
     //点击合约模板拷贝按钮触发的事件
     copyContractTamplateVersion(obj, vObj) {
       //合约模板名称和版本提示清空
+      this.dialog.title = this.$t("contracts.contractTemplateVersionCopyText");
+
       this.copyTemplateNameWarn = "";
       this.copyTemplateVersionWarn = "";
-      
+
       //获取原模板信息
       this.copyReqData.templateName = obj.templateName;
       this.originTemplateName = obj.templateName;
@@ -431,25 +518,138 @@ export default {
       this.copyReqData.templateId = vObj.templateId;
       this.copyReqData.templateSource = vObj.templateSource;
 
-      //关闭抽屉
-      this.dialogShow = !this.dialogShow;
+      //打开抽屉
+      this.dialog.dialogShow = !this.dialog.dialogShow;
+    },
+    updateVersion(obj, vObj) {
+      this.dialog.title = this.$t(
+        "contracts.contractTemplateVersionModifyText"
+      );
+
+      this.copyTemplateNameWarn = "";
+      this.copyTemplateVersionWarn = "";
+
+      this.copyReqData.templateVersion = vObj.templateVersion;
+      this.copyReqData.description =
+        obj.data[this.$t("table.templateDescriptionShort")] ==
+        this.$t("text.noRemark")
+          ? ""
+          : obj.data[this.$t("table.templateDescriptionShort")];
+
+      this.copyReqData.id = vObj.id;
+      this.copyReqData.templateId = vObj.templateId;
+      this.copyReqData.templateSource = vObj.templateSource;
+
+      this.dialog.dialogShow = !this.dialog.dialogShow;
+    },
+    editCode(Obj, vObj) {
+      this.$router.push(`/editor/${vObj.templateId}/${vObj.id}/00`);
+    },
+    //删除单一版本
+    async deleteVersion(id, obj) {
+      console.log(obj);
+      try {
+        const { data } = await deleteContractTemplateVersion(id);
+
+        if (data.code == "202041") {
+          this.$message({
+            message: chooseLang("202041"),
+            type: "warning",
+          });
+        } else {
+          this.$message({
+            message: this.$t("text.resetSuccess"),
+            type: "success",
+          });
+
+          //重新获取模板列表以及版本列表，重置多选按钮相关数据
+          this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+            requestData: this.requestDataProvide,
+            requiredData: {
+              creator: "",
+              templateName: "",
+            },
+          });
+          this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+            templateId: obj.id,
+          });
+
+          this.checkAll = false;
+          this.checkedList = [];
+          this.isIndeterminate = false;
+          this.checkNum = 0;
+        }
+      } catch (e) {}
+    },
+    //批量删除
+    async batchDeleteVersion() {
+      let checkedLen = this.checkedList.length;
+      let deleteIdList = [];
+      if (checkedLen) {
+        //删除后重新获取versionList
+        let templateId = this.checkedList[0].templateId;
+        for (let i = 0; i < checkedLen; i++) {
+          deleteIdList.push(this.checkedList[i].id);
+        }
+        let requestStr = deleteIdList.join(",");
+
+        try {
+          const { data } = await batchDeleteContractTemplateVersion(requestStr);
+
+          if (data.code == "202041") {
+            this.$message({
+              message: chooseLang("202041"),
+              type: "warning",
+            });
+          } else {
+            this.$message({
+              message: this.$t("text.resetSuccess"),
+              type: "success",
+            });
+
+            //重新获取模板列表以及版本列表，重置多选按钮相关数据
+            this.checkedList = [];
+            this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+              requestData: this.requestDataProvide,
+              requiredData: {
+                creator: "",
+                templateName: "",
+              },
+            });
+            this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+              templateId,
+            });
+
+            this.checkAll = false;
+            this.checkedList = [];
+            this.isIndeterminate = false;
+            this.checkNum = 0;
+          }
+        } catch (e) {}
+      }
+    },
+    //添加版本
+    addContractVersion() {
+      // addContractTemplateVersion
     },
     //根据按钮传来的name决定触发对应事件
     async drawerNavBtn(e, id, name, Obj, vObj) {
       switch (name) {
         case "downloadContractTemplate":
-          this.downloadContractTemplate(id);
+          this.downloadContractTemplate(id, Obj);
           break;
         case "copyContractTemplateVersion":
           this.copyContractTamplateVersion(Obj, vObj);
           break;
         case "editCode":
+          this.editCode(Obj, vObj);
           break;
         case "updateVersion":
+          this.updateVersion(Obj, vObj);
           break;
         case "deleteVersion":
+          this.deleteVersion(id, Obj);
           break;
-
         default:
           break;
       }
@@ -459,6 +659,21 @@ export default {
 </script>
 
 <style scoped>
+.slide-enter-active {
+  transition: all 0.4s 0.25s linear;
+}
+.slide-leave-active {
+  transition: all 0.4s linear;
+}
+.slide-enter {
+  opacity: 0;
+  transform: translateX(-100%);
+}
+.slide-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
 .contractDrawer {
   padding: 10px 20px !important;
 }
