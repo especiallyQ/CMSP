@@ -8,7 +8,7 @@ const accountInfo = resolve => require(['@/views/account/accountInfo'], resolve)
 const groupInfo = resolve => require(['@/views/account/groupInfo'], resolve);
 const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
-const depositoryList = resolve => require(['@/views/depository/depositoryList'], resolve)
+const depository = resolve => require(['@/views/depository/depository'], resolve)
 const depositoryHis = resolve => require(['@/views/depository/depositoryHis'], resolve)
 
 Vue.use(Router);
@@ -55,7 +55,7 @@ const routes = [{
     component: main,
     children: [
         {
-            path: '/depository', component: depositoryList, name: 'depositoryList', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+            path: '/depository', component: depository, name: 'depositoryList', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
         },
         {
             path: '/depositoryHis/:appChainId/:contractNameId/:templateId/:id', component: depositoryHis, name: 'depositoryHis', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },

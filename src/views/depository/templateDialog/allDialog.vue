@@ -4,7 +4,7 @@
       :title="allDialogTitle"
       :visible.sync="dialogFormVisible"
       :close-on-click-modal="false"
-      @close="closeAllDialog"
+      @close="closeAllDialog(false)"
       center
       width="498px"
     >
@@ -15,7 +15,7 @@
         class="selectForm"
         :rules="rules"
       >
-        <el-form-item :label="$t('depository.templateName')">
+        <el-form-item :label="$t('depository.templateName')" v-if="flag !== 2">
           <el-input :placeholder="templateName" :disabled="true"></el-input>
         </el-form-item>
 
@@ -27,16 +27,22 @@
         >
           <el-input
             v-model="form[item.parameterName]"
-            v-if="item.parameterType !== 'file'"
+            v-if="item.parameterType !== 'file' || flag === 1"
+            :disabled="
+              (flag === 1 && item.parameterType === 'file') || flag === 2
+            "
           ></el-input>
-          <!-- <el-button type="file" v-else>{{ $t("text.upLoadFile") }}</el-button> -->
           <el-upload
             v-else
             class="upload-demo"
             ref="upload"
-            action="https://jsonplaceholder.typicode.com/posts/"
+            action=""
             :auto-upload="false"
             :limit="1"
+            :file-list="fileList"
+            :http-request="httpRequest"
+            :on-remove="handleRemove"
+            :on-change="handleChange"
           >
             <el-button slot="trigger" size="small" type="primary"
               >选取文件</el-button
@@ -46,10 +52,15 @@
         </el-form-item>
       </el-form>
       <div class="dialog-footer">
-        <el-button @click="closeAllDialog">{{ $t("text.cancel") }}</el-button>
-        <el-button @click="submitAllDialog('ruleForm')" type="primary">{{
-          $t("text.sure")
+        <el-button @click="closeAllDialog(false)">{{
+          $t("text.cancel")
         }}</el-button>
+        <el-button
+          @click="submitAllDialog('ruleForm')"
+          type="primary"
+          :loading="loading"
+          >{{ $t("text.sure") }}</el-button
+        >
       </div>
     </el-dialog>
   </div>
@@ -60,6 +71,7 @@ import {
   getDepoTemplateById,
   saveDepositoryContent,
   modifyDepositoryContent,
+  validateDepositoryContent,
 } from "@/util/api";
 export default {
   props: {
@@ -75,8 +87,8 @@ export default {
       required: true,
     },
     // 存证模板
-    template: {
-      type: Array,
+    templateName: {
+      type: String,
     },
     // 编辑时所选的列表数据
     editData: {
@@ -90,12 +102,13 @@ export default {
   data() {
     return {
       dialogFormVisible: this.visible, //控制dialog是否显示
-      templateName: null, //存证模板名称
       parameter: [],
       rules: {}, //验证规则
       form: {
         //表单数据
       },
+      loading: false,
+      fileList: [],
     };
   },
 
@@ -103,12 +116,41 @@ export default {
     visible() {
       this.dialogFormVisible = this.visible;
     },
-    template() {
-      this.templateName = this.template[0].name;
+    form: {
+      handler() {
+        for (let key of this.parameter) {
+          key.parameterValue = this.form[key.parameterName];
+        }
+      },
+      deep: true,
     },
   },
 
   methods: {
+    httpRequest() {},
+
+    handleRemove() {},
+
+    handleChange(file, fileList) {
+      if (fileList.length >= 2) {
+        return;
+      }
+      this.form.file = file;
+      console.log(this.form);
+    },
+
+    // 开启Dialog时
+    openAllDialog() {
+      this.getDepoTemplate();
+      this.editFormData();
+    },
+
+    // 关闭Dialog时
+    closeAllDialog(flag) {
+      this.$emit("updateAllDialog", false, flag);
+    },
+
+    // 获取当前列表项数据
     editFormData() {
       for (let key of this.parameter) {
         this.$set(
@@ -119,26 +161,15 @@ export default {
       }
     },
 
-    // 开启Dialog时
-    openAllDialog() {
-      getDepoTemplateById(this.template[0].id).then((res) => {
-        this.parameter = res.data.data || [];
-        this.createRules();
-        this.editFormData();
-      });
-    },
-
-    // 关闭Dialog时
-    closeAllDialog() {
-      console.log(this.parameter);
-      console.log(this.form);
-      this.$emit("updateAllDialog", false);
-    },
-
-    // 录入存证信息
-    setDepositoryContent() {
-      saveDepositoryContent(this.form).then((res) => {
+    // 获取模板列表数据
+    getDepoTemplate() {
+      getDepoTemplateById(this.id.templateId).then((res) => {
         if (res.data.code === 0) {
+          this.parameter = res.data.data;
+          if (this.flag === 1 || this.flag === 2) {
+            this.editFormData();
+          }
+          this.createRules();
         } else {
           this.$message({
             message: this.$chooseLang(res.data.code),
@@ -147,12 +178,32 @@ export default {
           });
         }
       });
+    },
+
+    // 录入存证信息
+    setDepositoryContent() {
+      // saveDepositoryContent(this.form).then((res) => {
+      //   if (res.data.code === 0) {
+      //   } else {
+      //     this.$message({
+      //       message: this.$chooseLang(res.data.code),
+      //       type: "error",
+      //       duration: 2000,
+      //     });
+      //   }
+      // });
     },
 
     // 编辑存证列表信息
     editDepositoryContent(data) {
       modifyDepositoryContent(data).then((res) => {
         if (res.data.code === 0) {
+          this.closeAllDialog(true);
+          this.$message({
+            type: "success",
+            message: this.$t("text.updateSuccessMsg"),
+            duration: 2000,
+          });
         } else {
           this.$message({
             message: this.$chooseLang(res.data.code),
@@ -160,6 +211,15 @@ export default {
             duration: 2000,
           });
         }
+      });
+    },
+
+    // 验证存证列表信息
+    validateDepository() {
+      let formData = new FormData();
+      formData.append("file", this.form.file);
+      validateDepositoryContent(this.editData.id, formData).then((res) => {
+        console.log(res);
       });
     },
 
@@ -167,25 +227,24 @@ export default {
     submitAllDialog(formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
+          this.loading = true;
           switch (this.flag) {
             case 0:
-              setDepositoryContent();
+              // setDepositoryContent();
               break;
             case 1:
-              editDepositoryContent({
-                chainId: this.id.appChainId,
-                contractId: this.id.contractNameId,
-                depositoryTemplateId: this.id.templateId,
-                params: [
-                  {
-                    parameterName: "string",
-                    parameterType: "string",
-                    parameterValue: "string",
-                  },
-                ],
-              });
+              const { appChainId, contractNameId, templateId } = this.id;
+              const data = {
+                chainId: appChainId,
+                contractId: contractNameId,
+                depositoryTemplateId: templateId,
+                id: this.editData.id,
+                params: this.parameter,
+              };
+              this.editDepositoryContent(data);
               break;
             case 2:
+              this.validateDepository();
               break;
           }
         } else {
