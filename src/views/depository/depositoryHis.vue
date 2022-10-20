@@ -123,7 +123,11 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
+.module-wrapper {
+  padding-bottom: 20px;
+}
+
 .goBack-tabs {
   width: 100%;
   height: 80px;
