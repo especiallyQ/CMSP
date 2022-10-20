@@ -75,6 +75,7 @@
       </div>
       <div class="depository-list">
         <el-table
+          v-loading="loading"
           :data="newTableData"
           style="width: 100%"
           :empty-text="$t('text.noData')"
@@ -135,10 +136,10 @@
         v-if="allDialogVisible"
         :visible.sync="allDialogVisible"
         :flag="allDialogFlag"
-        :template="allDialogTemplateData"
-        @updateAllDialog="changeAllDialog"
+        :templateName="allDialogTemplateData[0].name"
         :editData="editData"
-        @id="id"
+        :id="id"
+        @updateAllDialog="changeAllDialog"
       ></AllDialog>
     </div>
   </div>
@@ -181,6 +182,7 @@ export default {
       pageSize: 10, // 分页-每页数据条目数
       total: 0, // 分页-数据条目总数
       TableHeaderFlag: false, //存证模板表格表头是否显示
+      loading: false, //loading标识
 
       createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
       allDialogVisible: false, //录入存证信息、编辑、数据校验Dialog是否显示
@@ -226,6 +228,9 @@ export default {
       this.allDialogTemplateData = this.templateList.filter((item) => {
         return item.id === this.id.templateId;
       });
+      if (!val && flag) {
+        this.getDepositoryData();
+      }
       this.editData = data;
       this.allDialogVisible = val;
       this.allDialogFlag = flag;
@@ -233,9 +238,10 @@ export default {
 
     //  跳转历史版本
     goDepositoryHis(row) {
-      console.log(this.id);
-      console.log(row);
-      this.$router.push('/depositoryHis')
+      const { appChainId, contractNameId, templateId } = this.id;
+      this.$router.push(
+        `/depositoryHis/${appChainId}/${contractNameId}/${templateId}/${row.id}`
+      );
     },
 
     // 获取应用链下拉数据
@@ -295,6 +301,7 @@ export default {
 
     // 获取存证列表数据
     async getDepositoryData() {
+      this.loading = true;
       if (this.templateList.length > 0) {
         const depositoryListData = await getDepositoryList({
           pageNumber: this.currentPage,
@@ -310,7 +317,7 @@ export default {
             name: key.parameterName,
             props: key.parameterName,
             align: "center",
-            width: "162px",
+            width: "150px",
           });
         }
 
@@ -326,7 +333,7 @@ export default {
             validateTime: getDate(key.validateTime),
           });
         }
-
+        this.loading = false;
         this.TableHeaderFlag = true;
       } else {
         this.$message({
@@ -345,7 +352,7 @@ export default {
   computed: {
     // 计算最后渲染表头信息
     tableHeader() {
-      let data = [
+      let headerData = [
         {
           enName: "submitTime",
           name: this.$t("depository.timestamp"),
@@ -361,7 +368,7 @@ export default {
           width: "195px",
         },
       ];
-      return this.newTableHeader.concat(data);
+      return this.newTableHeader.concat(headerData);
     },
   },
 };

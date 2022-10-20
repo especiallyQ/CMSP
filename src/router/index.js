@@ -55,12 +55,11 @@ const routes = [{
     component: main,
     children: [
         {
-            path: '/depository', component: depositoryList, name: 'depositoryTitle', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+            path: '/depository', component: depositoryList, name: 'depositoryList', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
         },
         {
-            path: '/depositoryHis', component: depositoryHis, name: 'depositoryTitle', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+            path: '/depositoryHis/:appChainId/:contractNameId/:templateId/:id', component: depositoryHis, name: 'depositoryHis', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
         },
-
     ]
 }, {
     path: '/',
