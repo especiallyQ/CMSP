@@ -76,27 +76,6 @@
           <p
             v-if="
               dialog.title ==
-              this.$t('contracts.contractTemplateVersionModifyText')
-            "
-          >
-            <span class="dialog-line-title">{{
-              this.$t("contracts.contractFileUpload")
-            }}</span>
-
-            <el-upload
-              class="upload-demo"
-              :action="upLoadUrl"
-              :file-list="fileList"
-            >
-              <el-button size="small" type="primary">点击上传</el-button>
-              <div slot="tip" class="el-upload__tip">
-                只能上传jpg/png文件，且不超过500kb
-              </div>
-            </el-upload>
-          </p>
-          <p
-            v-if="
-              dialog.title ==
               this.$t('contracts.contractTemplateVersionCopyText')
             "
           >
@@ -145,10 +124,7 @@
               this.$t("contracts.contractTemplateVersion")
             }}</span
             ><el-input
-              :disabled="
-                dialog.title !==
-                this.$t('contracts.contractTemplateVersionCopyText')
-              "
+              :disabled="dialog.versionDisable"
               @blur="valiData($event, 'inputContractTemplateVersion')"
               v-model="copyReqData.templateVersion"
               :placeholder="this.$t('contracts.inputContractTemplateVersion')"
@@ -159,6 +135,46 @@
               </div>
             </span>
           </p>
+          <p
+            v-if="
+              dialog.title ==
+              this.$t('contracts.contractTemplateVersionModifyText')
+            "
+          >
+            <span class="dialog-line-title">{{
+              this.$t("contracts.contractFileUpload")
+            }}</span>
+
+            <el-upload
+              class="uploadFile"
+              :file-list="uploadFileConfig.fileList"
+              action
+              ref="upload"
+              :auto-upload="false"
+              :on-remove="uploadRemove"
+              :on-change="uploadChange"
+              :on-exceed="uploadExceed"
+              :before-upload="beforeUpload"
+              :limit="uploadFileConfig.fileLimit"
+            >
+              <el-button size="small" type="primary">{{
+                this.$t("text.upLoadFile")
+              }}</el-button>
+              <div slot="tip" class="el-upload__tip tip2">
+                {{ this.$t("contracts.contractFileUploadDesc") }}
+              </div>
+            </el-upload>
+          </p>
+          <div
+            slot="tip"
+            class="el-upload__tip tip1"
+            v-if="
+              dialog.title ==
+              this.$t('contracts.contractTemplateVersionModifyText')
+            "
+          >
+            {{ this.$t("contracts.inputDiffContractTemplateVersionTip") }}
+          </div>
           <p>
             <span
               class="
@@ -177,8 +193,12 @@
           </p>
         </div>
         <span slot="footer" class="dialog-footer">
-          <el-button @click="dialogSelectBtn($event, false)">取 消</el-button>
-          <el-button type="primary" @click="dialogSelectBtn($event, true)"
+          <el-button @click="dialogSelectBtn($event, false, dialog.title)"
+            >取 消</el-button
+          >
+          <el-button
+            type="primary"
+            @click="dialogSelectBtn($event, true, dialog.title)"
             >确 定</el-button
           >
         </span>
@@ -202,8 +222,9 @@ import dispatchKeys from "@/util/storeKeys/contractTemplate/dispatchKeys";
 import {
   batchDeleteContractTemplateVersion,
   deleteContractTemplateVersion,
+  modifyContractTemplateVersion,
 } from "@/util/api";
-import url from '@/util/url';
+import url from "@/util/url";
 
 export default {
   name: "contractDrawer",
@@ -240,7 +261,6 @@ export default {
   },
   data() {
     return {
-      upLoadUrl:url.ORG_LIST,
       checkAll: false,
       checkedList: [],
       isIndeterminate: false,
@@ -262,22 +282,34 @@ export default {
       dialog: {
         dialogShow: false,
         title: "",
+        versionDisable: false,
+      },
+      uploadFileConfig: {
+        fileType: ["zip"],
+        fileLimit: 1,
+        fileList: [],
+      },
+      uploadFileData: {
+        lastVersion: "",
+        id: "",
+        templateId: "",
+        templateVersion: "",
+        templateSource: "",
+        creatorId: "",
+        createTime: "",
+        relatedFlag: "",
+        templateName: "",
+        templateCreatorId: "",
+        tick: false,
+        uploadFile: "",
       },
     };
   },
   computed: {
-    fileList:{
-      get(){
-        let currentObj = this.currentObj
-        console.log(currentObj);
-        return currentObj
-      }
-    },
     templateVersionList: {
       get() {
         let versionList =
           this.$store.state.contractTemplate.templateVersionList.data;
-        console.log(versionList);
         let len = versionList ? versionList.length : 0;
 
         let user = localStorage.getItem("user");
@@ -379,6 +411,51 @@ export default {
     },
   },
   methods: {
+    uploadFileFn(itme) {
+      this.uploadFileData.uploadFile = itme.file;
+      this.uploadFileData.templateVersion = vObj.templateVersion;
+    },
+    beforeUpload(file) {
+      console.log(file, 123);
+      if (file.type) {
+        let ext = file.name.replace(/.+\./g, "").toLowerCase();
+        if (this.uploadFileConfig.fileType.includes(ext)) {
+          return true;
+        } else {
+          this.$message.error({
+            message: this.$t("contracts.uploadFileInvalid"),
+          });
+          return false;
+        }
+      } else {
+        this.$message.error({
+          message: this.$t("contracts.uploadFileInvalid"),
+        });
+        return false;
+      }
+    },
+    uploadExceed(files, fileList) {
+      this.$message({
+        message: this.$t("text.oneUploadFileTip"),
+        type: "warning",
+      });
+    },
+    uploadChange(file, fileList) {
+      // console.log(file, fileList, "change");
+      this.uploadFileConfig.fileList.push(file);
+    },
+    uploadRemove(file) {
+      this.uploadFileConfig.fileList = this.uploadFileConfig.fileList.filter(
+        (obj) => {
+          return obj.uid !== file.uid;
+        }
+      );
+      this.dialog.versionDisable = false;
+    },
+    valiVersion(version) {
+      let re = /([1-9][0-9]{0,1})(\.([0-9]{1,3}))*/g;
+      return version.match(re)[0] == version;
+    },
     //验证拷贝合约模板的名字和版本号是否为空
     valiData(e, key) {
       switch (key) {
@@ -397,7 +474,20 @@ export default {
               "contracts.selectContractTemplateVersion"
             );
           } else {
-            this.copyTemplateVersionWarn = "";
+            if (
+              this.copyReqData.templateVersion ==
+              this.uploadFileData.templateVersion
+            ) {
+              this.copyTemplateVersionWarn = this.$t(
+                "contracts.inputDiffContractTemplateVersion"
+              );
+            } else if (!this.valiVersion(this.copyReqData.templateVersion)) {
+              this.copyTemplateVersionWarn = this.$t(
+                "contracts.inputRuleVersion"
+              );
+            } else {
+              this.copyTemplateVersionWarn = "";
+            }
           }
           break;
         default:
@@ -405,60 +495,88 @@ export default {
       }
     },
     //合约模板拷贝后点击确定按钮触发的事件
-    async dialogSelectBtn(e, flag) {
+    async dialogSelectBtn(e, flag, name) {
       if (flag) {
-        if (!this.copyTemplateNameWarn && !this.copyTemplateVersionWarn) {
-          try {
-            if (this.originTemplateName == this.copyReqData.templateName) {
-              this.$message({
-                message: this.$t("text.contractExist"),
-                type: "warning",
-              });
-            } else {
-              if (!this.copyReqData.templateName) {
-                this.copyTemplateNameWarn = this.$t(
-                  "contracts.inputContractTemplateName"
-                );
-              }
+        switch (name) {
+          case this.$t("contracts.contractTemplateVersionCopyText"):
+            if (!this.copyTemplateNameWarn && !this.copyTemplateVersionWarn) {
+              try {
+                if (this.originTemplateName == this.copyReqData.templateName) {
+                  this.$message({
+                    message: this.$t("text.contractExist"),
+                    type: "warning",
+                  });
+                } else {
+                  if (!this.copyReqData.templateName) {
+                    this.copyTemplateNameWarn = this.$t(
+                      "contracts.inputContractTemplateName"
+                    );
+                  }
 
-              let requestData = {
-                ...this.copyReqData,
-                visibility: this.copyVisibility,
-              };
+                  let requestData = {
+                    ...this.copyReqData,
+                    visibility: this.copyVisibility,
+                  };
 
-              let formData = JSONSwitchFormData(requestData);
+                  let formData = JSONSwitchFormData(requestData);
 
-              const { data } = await copyContractTemplateVersion(formData);
-              if (data.code == 202145) {
+                  const { data } = await copyContractTemplateVersion(formData);
+                  if (data.code == 202145) {
+                    this.$message({
+                      message: chooseLang(data.code),
+                      type: "warning",
+                    });
+                  } else {
+                    this.$message({
+                      message: this.$t("text.addSuccess"),
+                      type: "success",
+                    });
+
+                    this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                      requestData: this.requestDataProvide,
+                      requiredData: {
+                        creator: "",
+                        templateName: "",
+                      },
+                    });
+                    this.dialog.title = "";
+                    return (this.dialog.dialogShow = false);
+                  }
+                }
+              } catch (e) {
                 this.$message({
-                  message: chooseLang(data.code),
+                  message: e.msg || e.message,
                   type: "warning",
                 });
-              } else {
-                this.$message({
-                  message: this.$t("text.addSuccess"),
-                  type: "success",
-                });
-
-                this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
-                  requestData: this.requestDataProvide,
-                  requiredData: {
-                    creator: "",
-                    templateName: "",
-                  },
-                });
-                this.dialog.title = "";
-                return (this.dialog.dialogShow = false);
               }
             }
-          } catch (e) {
-            this.$message({
-              message: e.msg || e.message,
-              type: "warning",
-            });
-          }
+            break;
+          case this.$t("contracts.contractTemplateVersionModifyText"):
+            this.valiData(e, "inputContractTemplateVersion");
+            if (!this.copyTemplateVersionWarn) {
+              let file = this.uploadFileConfig.fileList[0].raw;
+              let reader = new FileReader();
+              reader.readAsText(new Blob([file]));
+              
+
+
+              this.uploadFileData.templateVersion =
+                this.copyReqData.templateVersion;
+              this.uploadFileData.templateSource = "";
+              reader.onload = async () => {
+                // this.uploadFileData.uploadFile = reader.result ? reader.result : null
+                let formDate = JSONSwitchFormData(this.uploadFileData);
+                formDate.set("uploadFile",file)
+                const { data } = await modifyContractTemplateVersion(formDate);
+                this.uploadFileConfig.fileList = [];
+                console.log(data);
+              }
+            }
+          default:
+            break;
         }
       } else {
+        // this.uploadFileConfig.fileList = [];
         return (this.dialog.dialogShow = false);
       }
     },
@@ -501,6 +619,7 @@ export default {
       this.copyTemplateNameWarn = "";
       this.copyTemplateVersionWarn = "";
 
+      this.dialog.versionDisable = false;
       //获取原模板信息
       this.copyReqData.templateName = obj.templateName;
       this.originTemplateName = obj.templateName;
@@ -522,9 +641,20 @@ export default {
       this.dialog.dialogShow = !this.dialog.dialogShow;
     },
     updateVersion(obj, vObj) {
+      this.dialog.versionDisable = true;
+
       this.dialog.title = this.$t(
         "contracts.contractTemplateVersionModifyText"
       );
+
+      console.log(obj, vObj);
+      let fileName = vObj.templateSource.replace(/.+\//g, "");
+      this.uploadFileConfig.fileList = [
+        {
+          name: `${fileName}.zip`,
+          url: `${url.ORG_LIST}/${vObj.templateSource}`,
+        },
+      ];
 
       this.copyTemplateNameWarn = "";
       this.copyTemplateVersionWarn = "";
@@ -539,6 +669,20 @@ export default {
       this.copyReqData.id = vObj.id;
       this.copyReqData.templateId = vObj.templateId;
       this.copyReqData.templateSource = vObj.templateSource;
+
+      this.uploadFileData.lastVersion = vObj.templateVersion;
+      this.uploadFileData.id = vObj.id;
+      this.uploadFileData.templateId = vObj.templateId;
+      this.uploadFileData.templateVersion = vObj.templateVersion;
+      this.uploadFileData.templateSource = vObj.templateSource;
+      this.uploadFileData.creatorId = vObj.creatorId;
+      this.uploadFileData.createTime = vObj.createTime;
+      this.uploadFileData.relatedFlag = 0;
+      this.uploadFileData.templateName = obj.templatedName
+        ? obj.templatedName
+        : "";
+      this.uploadFileData.templateCreatorId = obj.creatorId;
+      this.uploadFileData.tick = false;
 
       this.dialog.dialogShow = !this.dialog.dialogShow;
     },
@@ -696,7 +840,10 @@ export default {
 
 .dialog {
   width: 100vw;
-  min-width: 1000px;
+}
+
+.dialog >>> .el-dialog--center {
+  width: 500px !important;
 }
 
 .dialog-body {
@@ -735,5 +882,33 @@ export default {
   font-size: 13px;
   color: red;
   height: 20px;
+}
+
+.uploadFile {
+  position: relative;
+}
+.tip1 {
+  margin-left: 20%;
+  margin-bottom: 30px;
+  opacity: 0.6;
+  width: 80%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: initial;
+  line-height: 27px;
+}
+
+.uploadFile .tip2 {
+  position: absolute;
+  width: 10vw;
+  top: -7px;
+  left: 95px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
