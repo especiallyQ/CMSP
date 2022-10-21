@@ -32,14 +32,17 @@
               (flag === 1 && item.parameterType === 'file') || flag === 2
             "
           ></el-input>
-          <!-- <el-button type="file" v-else>{{ $t("text.upLoadFile") }}</el-button> -->
           <el-upload
             v-else
             class="upload-demo"
             ref="upload"
-            action="https://jsonplaceholder.typicode.com/posts/"
+            action=""
             :auto-upload="false"
             :limit="1"
+            :file-list="fileList"
+            :http-request="httpRequest"
+            :on-remove="handleRemove"
+            :on-change="handleChange"
           >
             <el-button slot="trigger" size="small" type="primary"
               >选取文件</el-button
@@ -68,6 +71,7 @@ import {
   getDepoTemplateById,
   saveDepositoryContent,
   modifyDepositoryContent,
+  validateDepositoryContent,
 } from "@/util/api";
 export default {
   props: {
@@ -104,6 +108,7 @@ export default {
         //表单数据
       },
       loading: false,
+      fileList: [],
     };
   },
 
@@ -122,15 +127,16 @@ export default {
   },
 
   methods: {
-    // 获取当前列表项数据
-    editFormData() {
-      for (let key of this.parameter) {
-        this.$set(
-          this.form,
-          key.parameterName,
-          this.editData[key.parameterName]
-        );
+    httpRequest() {},
+
+    handleRemove() {},
+
+    handleChange(file, fileList) {
+      if (fileList.length >= 2) {
+        return;
       }
+      this.form.file = file;
+      console.log(this.form);
     },
 
     // 开启Dialog时
@@ -142,6 +148,17 @@ export default {
     // 关闭Dialog时
     closeAllDialog(flag) {
       this.$emit("updateAllDialog", false, flag);
+    },
+
+    // 获取当前列表项数据
+    editFormData() {
+      for (let key of this.parameter) {
+        this.$set(
+          this.form,
+          key.parameterName,
+          this.editData[key.parameterName]
+        );
+      }
     },
 
     // 获取模板列表数据
@@ -197,6 +214,15 @@ export default {
       });
     },
 
+    // 验证存证列表信息
+    validateDepository() {
+      let formData = new FormData();
+      formData.append("file", this.form.file);
+      validateDepositoryContent(this.editData.id, formData).then((res) => {
+        console.log(res);
+      });
+    },
+
     // 提交Dialog
     submitAllDialog(formName) {
       this.$refs[formName].validate((valid) => {
@@ -218,6 +244,7 @@ export default {
               this.editDepositoryContent(data);
               break;
             case 2:
+              this.validateDepository();
               break;
           }
         } else {
