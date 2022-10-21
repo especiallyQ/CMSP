@@ -265,7 +265,7 @@ export default {
       ];
     },
   },
-
+ 
   mounted() {
     this.open();
   },

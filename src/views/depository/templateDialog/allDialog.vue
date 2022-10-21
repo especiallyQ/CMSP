@@ -40,9 +40,16 @@
             :auto-upload="false"
             :limit="1"
             :file-list="fileList"
-            :http-request="httpRequest"
-            :on-remove="handleRemove"
-            :on-change="handleChange"
+            :on-remove="
+              () => {
+                handleRemove(item.parameterName);
+              }
+            "
+            :on-change="
+              (file, fileList) => {
+                handleChange(file, fileList, item.parameterName);
+              }
+            "
           >
             <el-button slot="trigger" size="small" type="primary"
               >选取文件</el-button
@@ -59,7 +66,9 @@
           @click="submitAllDialog('ruleForm')"
           type="primary"
           :loading="loading"
-          >{{ $t("text.sure") }}</el-button
+          >{{
+            flag === 2 ? $t("depository.validateBtn") : $t("text.sure")
+          }}</el-button
         >
       </div>
     </el-dialog>
@@ -127,16 +136,17 @@ export default {
   },
 
   methods: {
-    httpRequest() {},
+    // 移除文件
+    handleRemove(parameterName) {
+      this.form[parameterName] = null;
+    },
 
-    handleRemove() {},
-
-    handleChange(file, fileList) {
+    // 改变文件状态
+    handleChange(file, fileList, parameterName) {
       if (fileList.length >= 2) {
         return;
       }
-      this.form.file = file;
-      console.log(this.form);
+      this.$set(this.form, parameterName, file);
     },
 
     // 开启Dialog时
@@ -153,11 +163,15 @@ export default {
     // 获取当前列表项数据
     editFormData() {
       for (let key of this.parameter) {
-        this.$set(
-          this.form,
-          key.parameterName,
-          this.editData[key.parameterName]
-        );
+        if (this.flag === 2 && key.parameterType === "file") {
+          this.$set(this.form, key.parameterName, null);
+        } else {
+          this.$set(
+            this.form,
+            key.parameterName,
+            this.editData[key.parameterName]
+          );
+        }
       }
     },
 
@@ -182,26 +196,30 @@ export default {
 
     // 录入存证信息
     setDepositoryContent() {
-      // saveDepositoryContent(this.form).then((res) => {
-      //   if (res.data.code === 0) {
-      //   } else {
-      //     this.$message({
-      //       message: this.$chooseLang(res.data.code),
-      //       type: "error",
-      //       duration: 2000,
-      //     });
-      //   }
-      // });
-    },
-
-    // 编辑存证列表信息
-    editDepositoryContent(data) {
-      modifyDepositoryContent(data).then((res) => {
+      const { appChainId, contractNameId, templateId } = this.id;
+      let params = {
+        chainId: appChainId,
+        contractId: contractNameId,
+        depositoryTemplateId: templateId,
+      };
+      let formData = new FormData();
+      for (let key of this.parameter) {
+        if (key.parameterType === "file") {
+          formData.append("file", key.parameterValue.raw);
+          key.parameterValue = "";
+        }
+      }
+      params.params = this.parameter;
+      let arrParams = [];
+      arrParams.push(JSON.stringify(params));
+      let blobParams = new Blob(arrParams, { type: "application/json" });
+      formData.append("params", blobParams);
+      saveDepositoryContent(formData).then((res) => {
         if (res.data.code === 0) {
           this.closeAllDialog(true);
           this.$message({
             type: "success",
-            message: this.$t("text.updateSuccessMsg"),
+            message: this.$t("text.addSuccess"),
             duration: 2000,
           });
         } else {
@@ -214,13 +232,80 @@ export default {
       });
     },
 
+    // 编辑存证列表信息
+    editDepositoryContent() {
+      const { appChainId, contractNameId, templateId } = this.id;
+      const data = {
+        chainId: appChainId,
+        contractId: contractNameId,
+        depositoryTemplateId: templateId,
+        id: this.editData.id,
+        params: this.parameter,
+      };
+      modifyDepositoryContent(data)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.closeAllDialog(true);
+            this.$message({
+              type: "success",
+              message: this.$t("text.updateSuccessMsg"),
+              duration: 2000,
+            });
+          } else {
+            this.loading = false;
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.closeAllDialog(false);
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
+          F;
+        });
+    },
+
     // 验证存证列表信息
     validateDepository() {
       let formData = new FormData();
-      formData.append("file", this.form.file);
-      validateDepositoryContent(this.editData.id, formData).then((res) => {
-        console.log(res);
-      });
+      let fileBlob;
+      for (let key of this.parameter) {
+        if (key.parameterType === "file") {
+          fileBlob = key.parameterValue.raw;
+        }
+      }
+      formData.append("file", fileBlob);
+      validateDepositoryContent(this.editData.id, formData)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.closeAllDialog(true);
+            this.$message({
+              type: "success",
+              message: this.$t("depository.validateSuccess"),
+              duration: 2000,
+            });
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.closeAllDialog(false);
+          this.$message({
+            type: "warning",
+            message: this.$t("depository.validateFileFailed"),
+            duration: 2000,
+          });
+        });
     },
 
     // 提交Dialog
@@ -230,18 +315,10 @@ export default {
           this.loading = true;
           switch (this.flag) {
             case 0:
-              // setDepositoryContent();
+              this.setDepositoryContent();
               break;
             case 1:
-              const { appChainId, contractNameId, templateId } = this.id;
-              const data = {
-                chainId: appChainId,
-                contractId: contractNameId,
-                depositoryTemplateId: templateId,
-                id: this.editData.id,
-                params: this.parameter,
-              };
-              this.editDepositoryContent(data);
+              this.editDepositoryContent();
               break;
             case 2:
               this.validateDepository();
@@ -309,7 +386,7 @@ export default {
                 message: `${key.parameterName}${this.$t(
                   "depository.fileRequired"
                 )}`,
-                trigger: "blur",
+                trigger: ["blur", "change"],
               },
             ];
             break;

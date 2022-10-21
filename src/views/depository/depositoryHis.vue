@@ -85,6 +85,7 @@ export default {
           this.TableHeaderFlag = true;
           this.loading = false;
         } else {
+          this.loading = false;
           this.$message({
             message: this.$chooseLang(res.data.code),
             type: "error",

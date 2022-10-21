@@ -58,16 +58,29 @@
             </el-form-item>
           </el-form>
         </div>
-        <div class="right-search-tabs">
+        <div
+          class="right-search-tabs"
+          v-if="
+            (role === 'PU_Admin' && chainIdentity) ||
+            (role === 'AD_Admin' && chainIdentity) ||
+            (role === 'PU_Operator' && chainIdentity)
+          "
+        >
           <el-button
             type="primary"
             size="small"
+            v-if="role === 'PU_Admin' || role === 'AD_Admin'"
             @click="changeTemplateDialog(true)"
             >{{ $t("depository.createTemplate") }}</el-button
           >
           <el-button
             type="primary"
             size="small"
+            v-if="
+              role === 'PU_Admin' ||
+              (role === 'PU_Operator' && chainIdentity) ||
+              role === 'AD_Admin'
+            "
             @click="changeAllDialog(true, 0)"
             >{{ $t("depository.saveDepository") }}</el-button
           >
@@ -102,14 +115,19 @@
               <el-button
                 type="text"
                 @click="changeAllDialog(true, 1, scope.row)"
+                :disabled="role === 'PO_Admin' || role === 'PO_Operator'"
                 >{{ $t("text.update") }}</el-button
               >
-              <el-button type="text" @click="goDepositoryHis(scope.row)">{{
-                $t("depository.history")
-              }}</el-button>
+              <el-button
+                type="text"
+                @click="goDepositoryHis(scope.row)"
+                :disabled="role === 'PO_Admin' || role === 'PO_Operator'"
+                >{{ $t("depository.history") }}</el-button
+              >
               <el-button
                 type="text"
                 @click="changeAllDialog(true, 2, scope.row)"
+                :disabled="role === 'PO_Admin' || role === 'PO_Operator'"
                 >{{ $t("depository.validate") }}</el-button
               >
             </template>
@@ -136,7 +154,7 @@
         v-if="allDialogVisible"
         :visible.sync="allDialogVisible"
         :flag="allDialogFlag"
-        :templateName="allDialogTemplateData[0].name"
+        :templateName="allDialogTemplateData"
         :editData="editData"
         :id="id"
         @updateAllDialog="changeAllDialog"
@@ -183,6 +201,8 @@ export default {
       total: 0, // 分页-数据条目总数
       TableHeaderFlag: false, //存证模板表格表头是否显示
       loading: false, //loading标识
+      role: localStorage.getItem("root"), // 登录账号的类型(角色)
+      chainIdentity: localStorage.getItem("chainIdentity"), //链上用户身份
 
       createTemplateDialogVisible: false, //新建存证模板Dialog是否显示
       allDialogVisible: false, //录入存证信息、编辑、数据校验Dialog是否显示
@@ -226,15 +246,25 @@ export default {
 
     // 切换录入存证信息、编辑、数据校验Dialog是否显示
     changeAllDialog(val, flag = 0, data) {
-      this.allDialogTemplateData = this.templateList.filter((item) => {
-        return item.id === this.id.templateId;
-      });
+      if (this.templateList.length > 0) {
+        this.allDialogFlag = flag;
+        this.editData = data;
+        this.allDialogVisible = val;
+        this.allDialogTemplateData = this.templateList.filter((item) => {
+          return item.id === this.id.templateId;
+        })[0].name;
+      } else {
+        this.allDialogFlag = false;
+        this.$message({
+          message: "请先选择模板数据",
+          type: "warning",
+          duration: 2000,
+        });
+      }
+
       if (!val && flag) {
         this.getDepositoryData();
       }
-      this.editData = data;
-      this.allDialogVisible = val;
-      this.allDialogFlag = flag;
     },
 
     //  跳转历史版本
