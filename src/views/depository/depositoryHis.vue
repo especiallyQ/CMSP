@@ -63,36 +63,44 @@ export default {
       getDepositoryHistoryList({
         templateId,
         id,
-      }).then((res) => {
-        if (res.data.code === 0) {
-          // 动态生成表头
-          for (let key of res.data.header) {
-            this.tableHeaderData.push({
-              enName: key.parameterName,
-              name: key.parameterName,
-              props: key.parameterName,
-              align: "center",
-              width: "150px",
+      })
+        .then((res) => {
+          if (res.data.code === 0) {
+            // 动态生成表头
+            for (let key of res.data.header) {
+              this.tableHeaderData.push({
+                enName: key.parameterName,
+                name: key.parameterName,
+                props: key.parameterName,
+                align: "center",
+                width: "150px",
+              });
+            }
+            for (let key of res.data.data) {
+              this.tableData.push({
+                ...JSON.parse(key.content),
+                submitOrg: key.submitOrg,
+                submitTime: getDate(key.submitTime),
+              });
+            }
+            this.TableHeaderFlag = true;
+            this.loading = false;
+          } else {
+            this.loading = false;
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
             });
           }
-          for (let key of res.data.data) {
-            this.tableData.push({
-              ...JSON.parse(key.content),
-              submitOrg: key.submitOrg,
-              submitTime: getDate(key.submitTime),
-            });
-          }
-          this.TableHeaderFlag = true;
-          this.loading = false;
-        } else {
-          this.loading = false;
+        })
+        .catch(() => {
           this.$message({
-            message: this.$chooseLang(res.data.code),
+            message: this.$t("text.systemError"),
             type: "error",
             duration: 2000,
           });
-        }
-      });
+        });
     },
   },
 

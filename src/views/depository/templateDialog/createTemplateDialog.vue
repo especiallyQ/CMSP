@@ -265,7 +265,7 @@ export default {
       ];
     },
   },
- 
+
   mounted() {
     this.open();
   },
@@ -276,7 +276,6 @@ export default {
       getAppChain4Depo()
         .then((res) => {
           if (res.data.code === 0) {
-
             this.appChainDialogList = res.data.data;
           } else {
             this.$message({
@@ -301,17 +300,26 @@ export default {
     },
 
     // 选择应用链获取合约信息
-    async changeChainOption() {
-      const res = await getContractsByChain(this.form.appChainId);
-      if (res.data.code === 0) {
-        this.contractNameList = res.data.data;
-      } else {
-        this.$message({
-          message: this.$chooseLang(res.data.code),
-          type: "error",
-          duration: 2000,
+    changeChainOption() {
+      getContractsByChain(this.form.appChainId)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.contractNameList = res.data.data;
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
         });
-      }
     },
 
     // 点击+添加参数项
@@ -348,9 +356,9 @@ export default {
             } else if (!this.params[i].parameterType) {
               this.$message({
                 type: "error",
-                message: `
-                ${this.params[i].parameterName}
-                ${this.$t("depository.emptyParameterType")}`,
+                message: `${this.params[i].parameterName}${this.$t(
+                  "depository.emptyParameterType"
+                )}`,
               });
               return;
             } else if (!this.checkParamName(this.params, "parameterName")) {
@@ -361,12 +369,7 @@ export default {
               return;
             }
           }
-          this.addDepositoryTemplate({
-            chainId: this.form.appChainId,
-            contractId: this.form.contractId,
-            depositoryTemplateName: this.form.depositoryTemplateName,
-            params: this.params,
-          });
+          this.addDepositoryTemplate();
         } else {
           return false;
         }
@@ -374,20 +377,40 @@ export default {
     },
 
     // 存证模板新建方法
-    async addDepositoryTemplate(data) {
+    addDepositoryTemplate() {
+      let data = {
+        chainId: this.form.appChainId,
+        contractId: this.form.contractId,
+        depositoryTemplateName: this.form.depositoryTemplateName,
+        params: this.params,
+      };
       this.loading = true;
-      const res = await saveDepoTemplate(data);
-      if (res.data.code === 0) {
-        this.$emit("getSelectTemplateName");
-        this.close();
-      } else {
-        this.loading = false;
-        this.$message({
-          message: this.$chooseLang(res.data.code),
-          type: "error",
-          duration: 2000,
+      saveDepoTemplate(data)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.$emit("getSelectTemplateName", true);
+            this.close();
+            this.$message({
+              type: "success",
+              message: this.$t("text.addSuccess"),
+              duration: 2000,
+            });
+          } else {
+            this.loading = false;
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
         });
-      }
     },
 
     // 判断文件类型是否被选中

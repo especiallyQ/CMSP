@@ -146,6 +146,11 @@ export default {
       if (fileList.length >= 2) {
         return;
       }
+      for (let key of this.parameter) {
+        if (key.parameterType === "file") {
+          this.$refs.ruleForm.clearValidate(key.parameterName);
+        }
+      }
       this.$set(this.form, parameterName, file);
     },
 
@@ -177,21 +182,29 @@ export default {
 
     // 获取模板列表数据
     getDepoTemplate() {
-      getDepoTemplateById(this.id.templateId).then((res) => {
-        if (res.data.code === 0) {
-          this.parameter = res.data.data;
-          if (this.flag === 1 || this.flag === 2) {
-            this.editFormData();
+      getDepoTemplateById(this.id.templateId)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.parameter = res.data.data;
+            if (this.flag === 1 || this.flag === 2) {
+              this.editFormData();
+            }
+            this.createRules();
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
           }
-          this.createRules();
-        } else {
+        })
+        .catch(() => {
           this.$message({
-            message: this.$chooseLang(res.data.code),
+            message: this.$t("text.systemError"),
             type: "error",
             duration: 2000,
           });
-        }
-      });
+        });
     },
 
     // 录入存证信息
@@ -214,22 +227,30 @@ export default {
       arrParams.push(JSON.stringify(params));
       let blobParams = new Blob(arrParams, { type: "application/json" });
       formData.append("params", blobParams);
-      saveDepositoryContent(formData).then((res) => {
-        if (res.data.code === 0) {
-          this.closeAllDialog(true);
+      saveDepositoryContent(formData)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.closeAllDialog(true);
+            this.$message({
+              type: "success",
+              message: this.$t("text.addSuccess"),
+              duration: 2000,
+            });
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
           this.$message({
-            type: "success",
-            message: this.$t("text.addSuccess"),
-            duration: 2000,
-          });
-        } else {
-          this.$message({
-            message: this.$chooseLang(res.data.code),
+            message: this.$t("text.systemError"),
             type: "error",
             duration: 2000,
           });
-        }
-      });
+        });
     },
 
     // 编辑存证列表信息
@@ -386,7 +407,7 @@ export default {
                 message: `${key.parameterName}${this.$t(
                   "depository.fileRequired"
                 )}`,
-                trigger: ["blur", "change"],
+                trigger: ["blur", "change", "submit"],
               },
             ];
             break;

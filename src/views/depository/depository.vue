@@ -114,18 +114,21 @@
             <template slot-scope="scope">
               <el-button
                 type="text"
+                class="el-button-text"
                 @click="changeAllDialog(true, 1, scope.row)"
                 :disabled="role === 'PO_Admin' || role === 'PO_Operator'"
                 >{{ $t("text.update") }}</el-button
               >
               <el-button
                 type="text"
+                class="el-button-text"
                 @click="goDepositoryHis(scope.row)"
                 :disabled="role === 'PO_Admin' || role === 'PO_Operator'"
                 >{{ $t("depository.history") }}</el-button
               >
               <el-button
                 type="text"
+                class="el-button-text"
                 @click="changeAllDialog(true, 2, scope.row)"
                 :disabled="role === 'PO_Admin' || role === 'PO_Operator'"
                 >{{ $t("depository.validate") }}</el-button
@@ -240,12 +243,13 @@ export default {
     },
 
     // 切换新建存证模板Dialog是否显示
-    async changeTemplateDialog(val) {
+    changeTemplateDialog(val) {
       this.createTemplateDialogVisible = val;
     },
 
     // 切换录入存证信息、编辑、数据校验Dialog是否显示
     changeAllDialog(val, flag = 0, data) {
+      console.log(123);
       if (this.templateList.length > 0) {
         this.allDialogFlag = flag;
         this.editData = data;
@@ -276,96 +280,139 @@ export default {
     },
 
     // 获取应用链下拉数据
-    async getSelectAppChain() {
-      const res = await getAppChain4Depo();
-      if (res.data.code === 0) {
-        this.appChainList = res.data.data;
-        if (this.appChainList.length > 0) {
-          this.id.appChainId = res.data.data[0].id;
-          this.getSelectContractName();
-        }
-      } else {
-        this.$message({
-          message: this.$chooseLang(res.data.code),
-          type: "error",
-          duration: 2000,
+    getSelectAppChain() {
+      getAppChain4Depo()
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.appChainList = res.data.data;
+            if (this.appChainList.length > 0) {
+              this.id.appChainId = res.data.data[0].id;
+              this.getSelectContractName();
+            }
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
         });
-      }
     },
 
     // 获取合约名称下拉数据
-    async getSelectContractName() {
-      const res = await getContractsByChain(this.id.appChainId);
-      if (res.data.code === 0) {
-        this.contractNameList = res.data.data;
-        if (this.contractNameList.length > 0) {
-          this.id.contractNameId = res.data.data[0].id;
-          this.getSelectTemplateName();
-        }
-      } else {
-        this.$message({
-          message: this.$chooseLang(res.data.code),
-          type: "error",
-          duration: 2000,
+    getSelectContractName() {
+      getContractsByChain(this.id.appChainId)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.contractNameList = res.data.data;
+            if (this.contractNameList.length > 0) {
+              this.id.contractNameId = res.data.data[0].id;
+              this.getSelectTemplateName();
+            }
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
         });
-      }
     },
 
     // 获取存证模板下拉数据
-    async getSelectTemplateName() {
+    getSelectTemplateName(flag) {
       this.currentPage = 1;
-      const res = await getDepoTemplateByContract(this.id.contractNameId);
-      if (res.data.code === 0) {
-        this.templateList = res.data.data;
-        if (this.templateList.length > 0) {
-          this.id.templateId = res.data.data[0].id;
-          this.getDepositoryData();
-        }
-      } else {
-        this.$message({
-          message: this.$chooseLang(res.data.code),
-          type: "error",
-          duration: 2000,
+      getDepoTemplateByContract(this.id.contractNameId)
+        .then((res) => {
+          if (res.data.code === 0) {
+            this.templateList = res.data.data;
+            if (this.templateList.length > 0) {
+              if (flag) {
+                let maxId = [];
+                for (let key of this.templateList) {
+                  maxId.push(key.id);
+                }
+                this.id.templateId = String(Math.max(...maxId));
+              } else {
+                this.id.templateId = res.data.data[0].id;
+              }
+              this.getDepositoryData();
+            }
+          } else {
+            this.$message({
+              message: this.$chooseLang(res.data.code),
+              type: "error",
+              duration: 2000,
+            });
+          }
+        })
+        .catch(() => {
+          this.$message({
+            message: this.$t("text.systemError"),
+            type: "error",
+            duration: 2000,
+          });
         });
-      }
     },
 
     // 获取存证列表数据
-    async getDepositoryData() {
+    getDepositoryData() {
       this.loading = true;
       if (this.templateList.length > 0) {
-        const depositoryListData = await getDepositoryList({
+        getDepositoryList({
           pageNumber: this.currentPage,
           pageSize: this.pageSize,
           templateId: this.id.templateId,
-        });
+        })
+          .then((res) => {
+            // 列表表头数据
+            this.newTableHeader = [];
+            for (let key of res.data.header) {
+              this.newTableHeader.push({
+                enName: key.parameterName,
+                name: key.parameterName,
+                props: key.parameterName,
+                align: "center",
+                width: "150px",
+              });
+            }
 
-        // 列表表头数据
-        this.newTableHeader = [];
-        for (let key of depositoryListData.data.header) {
-          this.newTableHeader.push({
-            enName: key.parameterName,
-            name: key.parameterName,
-            props: key.parameterName,
-            align: "center",
-            width: "150px",
+            this.total = res.data.totalCount;
+
+            // 列表表格数据
+            this.newTableData = [];
+            for (let key of res.data.data) {
+              this.newTableData.push({
+                ...JSON.parse(key.content),
+                id: key.id,
+                submitTime: getDate(key.submitTime),
+                validateTime: getDate(key.validateTime),
+              });
+            }
+            this.loading = false;
+            this.TableHeaderFlag = true;
+          })
+          .catch(() => {
+            this.$message({
+              message: this.$t("text.systemError"),
+              type: "error",
+              duration: 2000,
+            });
           });
-        }
-
-        this.total = depositoryListData.data.totalCount;
-
-        // 列表表格数据
-        this.newTableData = [];
-        for (let key of depositoryListData.data.data) {
-          this.newTableData.push({
-            ...JSON.parse(key.content),
-            id: key.id,
-            submitTime: getDate(key.submitTime),
-            validateTime: getDate(key.validateTime),
-          });
-        }
-        this.loading = false;
-        this.TableHeaderFlag = true;
       } else {
         this.$message({
           type: "error",
@@ -440,5 +487,10 @@ export default {
 .pagination {
   width: 100%;
   height: 200px;
+}
+
+.el-button-text {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
 }
 </style>
