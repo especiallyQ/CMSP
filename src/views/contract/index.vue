@@ -550,7 +550,6 @@ export default {
 
             let formDate = JSONSwitchFormData(this.addFileData);
             const { data } = await addContractTemplateVersion(formDate);
-            console.log(data);
             if (data.code == 0) {
               this.$message({
                 message: this.$t("text.updateSuccessMsg"),
@@ -932,7 +931,6 @@ export default {
       description,
       currentObj
     ) {
-      console.log(key);
       switch (key) {
         case "viewContractTemplateVersion":
           this.viewContractTemplateVersion(
