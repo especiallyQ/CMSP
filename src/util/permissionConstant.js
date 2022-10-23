@@ -21,13 +21,23 @@ export const permissionKeys = {
             pending: 0b1000000000
         },
     },
-    userIdentity: {
+    contract: {
         PO_Admin: 0b1011101,
         PU_Admin: 0b1011101,
+        PU_Admin2:0b1010001,
         AD_Admin: 0b1011101,
+        AD_Admin2: 0b1010001,
         PO_Operator: 0b0000001,
         PU_Operator: 0b0000001,
     }
+}
+
+export const root = {
+    PO_Admin:"PO_Admin",
+    PU_Admin: "PU_Admin",
+    AD_Admin: "AD_Admin",
+    PO_Operator: "PO_Operator",
+    PU_Operator: "PU_Operator",
 }
 
 export function binaryConversion(num) {
@@ -45,7 +55,7 @@ export function decimalConversion(num, base = 2) {
 export function havePermission(permissionName) {
     let root = localStorage.getItem("root");
     if(root){
-        let permission = permissionKeys.userIdentity[root] ? permissionKeys.userIdentity[root] : 0;
+        let permission = permissionKeys.contract[root] ? permissionKeys.contract[root] : 0;
 
         if((permission & permissionKeys.modulePermission[permissionName].have) ===
         permissionKeys.modulePermission[permissionName].have){
@@ -58,7 +68,7 @@ export function havePermission(permissionName) {
 export function pendingPermission(permissionName){
     let root = localStorage.getItem("root");
     if(root){
-        let permission = permissionKeys.userIdentity[root] ? permissionKeys.userIdentity[root] : 0;
+        let permission = permissionKeys.contract[root] ? permissionKeys.contract[root] : 0;
 
         if((permission & permissionKeys.modulePermission[permissionName].pending) ===
         permissionKeys.modulePermission[permissionName].pending){

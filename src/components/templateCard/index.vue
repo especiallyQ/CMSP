@@ -17,13 +17,13 @@
               </div>
               <div class="detil">
                 <ul>
-                  <li v-for="(obj, index) in detilDate" :key="index">
+                  <li v-for="obj in detilDate" :key="obj.key">
                     <p class="one-line">
                       <span>{{ obj.key }}</span> :
                       <span>{{ obj.name }}</span>
                     </p>
                   </li>
-                  <li v-if="remark.key">
+                  <li v-if="remark.key" :key="remark.name">
                     <div>
                       <p class="one-line">
                         <span>{{ remark.key }}</span> :
@@ -36,7 +36,7 @@
                               {{ str }}<br />
                             </div>
                           </div>
-                          <span>
+                          <span :key="remark.name">
                             {{ remark.name }}
                           </span>
                         </el-tooltip>
@@ -74,8 +74,7 @@ export default {
     propDetilDate: {
       type: Object,
       default: () => {
-        return {
-        };
+        return {};
       },
       //验证传入数据，必须为对象
       validator: (value) => {
@@ -88,13 +87,16 @@ export default {
   },
   data() {
     return {
-      title: this.propTitle,
-      detilDate: this.propDetilDate,
       titleIconColor: this.propTitleIconColor
         ? this.propTitleIconColor
         : "rgb(0, 102, 153)",
       //一些需要特殊处理的选项，不能和其他普通数据一起渲染的
-      specialHandlingList: ["备注", "Template Description", "Description"],
+      specialHandlingList: [
+        "备注",
+        "Template Description",
+        "Description",
+        "id",
+      ],
       remark: {
         key: "",
         name: "",
@@ -103,28 +105,31 @@ export default {
       remarkMaxNumberOfWords: 30,
     };
   },
-  methods: {
-    isString(val) {
-      return Object.prototype.toString.call(val) === "[object String]";
+  computed: {
+    title: {
+      get(){
+        return this.propTitle
+      }
     },
-    //以及对某些字段做特殊处理，如备注字段的hover弹框功能
-    getDrawDate() {
-      const newDetilDate = [];
-      Object.keys(this.detilDate).forEach((key, index) => {
-        let obj = {};
+    detilDate: {
+      get() {
+        const newDetilDate = [];
+        Object.keys(this.propDetilDate).forEach((key, index) => {
+          let obj = {};
+          let remarkObj = {}
           //判断是否是需要特殊处理的数据字段
           if (this.specialHandlingList.includes(key)) {
             if (
-              !Array.isArray(this.detilDate[key]) &&
-              Object.prototype.toString.call(this.detilDate[key]) !==
+              !Array.isArray(this.propDetilDate[key]) &&
+              Object.prototype.toString.call(this.propDetilDate[key]) !==
                 "[object String]"
             ) {
               throw new Error("请传入字符串或数组类型的备注数据！");
             } else {
               //将字符串类型的备注数据转换为数组，方便渲染，默认每段30个字符，可修改上方remarkMaxNumberOfWords字段改变长度
-              if (this.isString(this.detilDate[key])) {
-                let value = this.detilDate[key];
-                let len = this.detilDate[key].length;
+              if (this.isString(this.propDetilDate[key])) {
+                let value = this.propDetilDate[key];
+                let len = this.propDetilDate[key].length;
                 let newlist = [];
 
                 if (len >= this.remarkMaxNumberOfWords) {
@@ -147,20 +152,26 @@ export default {
                 } else {
                   newlist.push(value);
                 }
-                this.detilDate[key] = newlist;
+                remarkObj[key] = newlist;
               }
 
               this.remark.key = key;
-              this.remark.name = this.detilDate[key][0];
-              this.remark.all = this.detilDate[key];
+              this.remark.name = remarkObj[key][0];
+              this.remark.all = remarkObj[key];
             }
           } else {
             obj.key = key;
-            obj.name = this.detilDate[key];
+            obj.name = this.propDetilDate[key];
             newDetilDate.push(obj);
           }
-      });
-      this.detilDate = newDetilDate;
+        });
+        return newDetilDate;
+      },
+    },
+  },
+  methods: {
+    isString(val) {
+      return Object.prototype.toString.call(val) === "[object String]";
     },
     onClick(e) {
       this.$emit("click", e);
@@ -168,9 +179,6 @@ export default {
     onMouseenter(e) {
       this.$emit("mouseenter", e);
     },
-  },
-  created() {
-    this.getDrawDate();
   },
 };
 </script>

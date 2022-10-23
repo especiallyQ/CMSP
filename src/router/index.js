@@ -1,3 +1,8 @@
+/*
+ * @Author: chengjiang_09
+ * @Date: 2022-10-10 15:37:23
+ * @LastEditTime: 2022-10-20 09:32:01
+ */
 import Vue from 'vue';
 import Router from 'vue-router';
 
@@ -9,6 +14,7 @@ const groupInfo = resolve => require(['@/views/account/groupInfo'], resolve);
 const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
 const contractTemplate = resolve => require(['@/views/contract/index'], resolve);
+const editorView = resolve => require(['@/views/contract/editorView.vue'], resolve)
 
 Vue.use(Router);
 const routes = [{
@@ -57,16 +63,28 @@ const routes = [{
     }, {
         path: '/backlog', component: backlog, name: 'backlog', nameKey: 'backlog', menuShow: true, meta: { requireAuth: true }
     }]
-},{
-    path:'/',
+}, {
+    path: '/',
     component: main,
     name: 'main',
     nameKey: 'contractTemplate',
-    leaf:true,
+    leaf: true,
     menuShow: true,
     iconCls: 'cmsp-icon-qukuailian4 sidebar-icon',
     children: [{
-        path: '/contractTemplate', component: contractTemplate, name: 'contractTemplate', nameKey: 'contractTemplate', menuShow: true,meta :{requireAuth: false}
+        path: '/contractTemplate', 
+        component: contractTemplate, 
+        name: 'contractTemplate', 
+        nameKey: 'contractTemplate', 
+        menuShow: true, 
+        meta: { requireAuth: false },
+    },{
+        path: '/editor/:templateId/:versionId/:permissionId',
+        component: editorView,
+        name: 'cmspEditor',
+        nameKey: 'cmspEditor',
+        menuShow: true,
+        meta: { requireAuth: false }
     }]
 }];
 

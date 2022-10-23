@@ -3,19 +3,29 @@
     <div class="clearfix-container-left">
       <input
         type="text"
+        v-model="creator"
         class="search searchCreater"
+        @change="createrChange"
         :placeholder="searchCreater()"
       />
       <input
         type="text"
+        v-model="templateName"
+        @change="contractTemplateChange"
         :placeholder="searchContractTemplate()"
         class="search searchContractTemplate"
       />
-      <el-button class="searchButton" icon="el-icon-search"></el-button>
+      <el-button class="searchButton" icon="el-icon-search" @click="onClick2($event)"></el-button>
     </div>
     <div class="clearfix-container-right">
       <div>
-        <el-button type="primary" w class="createNewContract">{{$t(`contracts.${contractTemplateAddText}`)}}</el-button>
+        <el-button
+          type="primary"
+          class="createNewContract"
+          :class="{ show: createBtnShow }"
+          @click="onClick($event)"
+          >{{ $t(`contracts.${contractTemplateAddText}`) }}</el-button
+        >
       </div>
       <div>
         <el-button-group>
@@ -44,23 +54,51 @@
 <script>
 export default {
   name: "contractHeader",
+  props: {
+    propCreateBtnShow: {
+      type: Boolean,
+      default: false,
+      required: false,
+    },
+  },
   data() {
     return {
       isCollapse: true,
       changeAction: true,
-      contractTemplateAddText: "contractTemplateAddText"
+      contractTemplateAddText: "contractTemplateAddText",
+      creator:"",
+      templateName:""
     };
   },
+  computed: {
+    createBtnShow: {
+      get() {
+        return this.propCreateBtnShow;
+      },
+    },
+  },
   methods: {
+    createrChange(){
+      this.$emit("update:creator",this.creator)
+    },
+    contractTemplateChange(){
+      this.$emit("update:templateName",this.templateName)
+    },
     searchCreater() {
       return this.$t("contracts.creatorSearch");
     },
     searchContractTemplate() {
       return this.$t("contracts.contractNameSearch");
     },
-    toggleViewMode(){
-      this.changeAction = !this.changeAction
-      this.$emit("toggleViewModeFn",this.changeAction)
+    toggleViewMode() {
+      this.changeAction = !this.changeAction;
+      this.$emit("toggleViewModeFn", this.changeAction);
+    },
+    onClick(e) {
+      this.$emit("click", e);
+    },
+    onClick2(e) {
+      this.$emit("search", e);
     }
   },
 };
@@ -140,6 +178,7 @@ export default {
 }
 
 .clearfix-container-right .createNewContract {
+  display: none;
   margin-right: 10px;
 }
 
@@ -158,8 +197,8 @@ export default {
 }
 
 .clearfix .clearfix-container-right .iconBtn:hover {
-  transition: opacity .1s;
-  opacity: .8;
+  transition: opacity 0.1s;
+  opacity: 0.8;
 }
 
 .clearfix .clearfix-container-right .cmsp-icon-caidan {
@@ -171,5 +210,9 @@ export default {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.show {
+  display: block !important;
 }
 </style>

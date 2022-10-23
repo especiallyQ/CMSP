@@ -1,3 +1,8 @@
+<!--
+ * @Author: chengjiang_09
+ * @Date: 2022-10-13 14:36:34
+ * @LastEditTime: 2022-10-23 16:50:55
+-->
 <template>
   <div class="paginationView">
     <div class="block">
@@ -5,10 +10,9 @@
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
         :current-page="currentPage"
-        :page-sizes="pageSizes"
-        :page-size="pageSize"
         layout="total, sizes, prev, pager, next, jumper"
         :total="totalNum"
+        :page-sizes="pageSizes"
       >
       </el-pagination>
     </div>
@@ -20,11 +24,9 @@ export default {
   name: "paginationView",
   methods: {
     handleSizeChange(val) {
-      this.pageSize = val
       this.$emit("changeHandleSize", val)
     },
     handleCurrentChange(val) {
-      this.currentPage = val
       this.$emit("changeHandleCurrent", val)
     },
   },
@@ -32,16 +34,30 @@ export default {
     propTotalNum: {
       type:Number,
       default: 0
+    },
+    //使用.sync进行跨组件数据双向绑定
+    propCurrentPage: {
+      type:Number,
+      default:1
     }
   },
   data() {
     return {
-      currentPage: 1,
       pageSizes: [10,20,30,50],
-      pageSize:10,
-      totalNum:this.propTotalNum
     };
   },
+  computed:{
+    totalNum:{
+      get(){
+        return this.propTotalNum
+      }
+    },
+    currentPage: {
+      get(){
+        return this.propCurrentPage ? this.propCurrentPage : 1
+      }
+    }
+  }
 };
 </script>
 

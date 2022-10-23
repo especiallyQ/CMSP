@@ -292,13 +292,13 @@ export function random(min, max) {
  * @param {Object} obj 传入对象
  * @return {Boolean} 对象为空返回true，否则返回false
  */
-export function objectIsEmpty(obj){
-    if(Object.prototype.toString.call(obj) !== "[object Object]"){
+export function objectIsEmpty(obj) {
+    if (Object.prototype.toString.call(obj) !== "[object Object]") {
         throw new Error("传入数据类型不匹配，需传入对象类型数据")
     }
 
-    for(let key in obj){
-        if(Object.prototype.hasOwnProperty.call(obj, key)){
+    for (let key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
             return false
         }
     }
@@ -310,10 +310,38 @@ export function objectIsEmpty(obj){
  *
  * @return {String} 返回rgb字符串
  */
- export function rgb(){
+export function rgb() {
     let r = Math.floor(Math.random() * 256)
     let g = Math.floor(Math.random() * 256)
     let b = Math.floor(Math.random() * 256)
 
     return `rgb(${r},${g},${b})`
+}
+
+
+/**
+ * 将JSON数据转换为FormData，允许传入多层嵌套对象
+ * 
+ * @param {Object} obj 传入需要转换的json数据
+ * @return {String} 返回FormData数据
+ */
+export function JSONSwitchFormData(JSONData) {
+    let formData = new FormData()
+    
+    function switchFn(JSONData) {
+        Object.keys(JSONData).forEach((key) => {
+            if(Array.isArray(JSONData[key])){
+                JSONData[key].forEach((val) => {
+                    formData.append(key,val)
+                })
+            }else if(Object.prototype.toString.call(JSONData[key]) == '[object Object]'){
+                switchFn(JSONData[key])
+            }else {
+                formData.set(key, JSONData[key])
+            }
+        })
+    }
+    
+    switchFn(JSONData)
+    return formData
 }

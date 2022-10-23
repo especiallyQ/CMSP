@@ -1,6 +1,6 @@
 <template>
   <div class="smallView">
-    <el-table :data="initTableData" style="width: 100%" align="center">
+    <el-table :data="initTableData.drawList" style="width: 100%" align="center">
       <el-table-column
         align="center"
         v-for="(label, index) in titleList"
@@ -20,24 +20,27 @@
       <el-table-column
         align="center"
         :label="this.$t('table.templateOperation')"
+        :prop="this.$t('table.templateOperation')"
         min-width="300"
       >
-        <div class="operation-container">
-          <ul>
-            <li @click="operationContract($event, 'delete')">
-              {{ $t("contracts.deleteTemplate") }}
-            </li>
-            <li @click="operationContract($event, 'update')">
-              {{ $t("contracts.updateTemplate") }}
-            </li>
-            <li @click="operationContract($event, 'add')">
-              {{ $t("contracts.addContractTemplateVersion") }}
-            </li>
-            <li @click="operationContract($event, 'view')">
-              {{ $t("contracts.viewContractTemplateVersion") }}
-            </li>
-          </ul>
-        </div>
+        <template slot-scope="scope">
+          <div class="operation-container">
+            <ul>
+              <li
+                v-for="obj in scope.row[$t('table.templateOperation')]"
+                :key="obj.name"
+              >
+                <el-button
+                  class="operationItems"
+                  :style="{ color: obj.propColor }"
+                  :disabled="!obj.propAction"
+                  @click="operationContract($event, obj.name, scope)"
+                  >{{ $t(`contracts.${obj.name}`) }}</el-button
+                >
+              </li>
+            </ul>
+          </div>
+        </template>
       </el-table-column>
     </el-table>
   </div>
@@ -55,15 +58,59 @@ export default {
     },
   },
   methods: {
-    operationContract(e, val) {
+    findCurrentObj(templateName) {
+      let currentObj = this.initTableData.tableData.filter((obj) => {
+        return obj.templateName == templateName;
+      });
+
+      return currentObj;
+    },
+    // deleteTemplate(templateName){
+    //   let currentObj =  this.findCurrentObj(templateName)
+    // },
+    operationContract(e, val, scope) {
+      let currentObj = this.findCurrentObj(
+        scope.row[this.$t("table.templateName")]
+      )[0];
+      console.log(currentObj);
+      let versionCount = currentObj.data[this.$t('table.templateVersionCount')]
+      let description = currentObj.data[this.$t('table.templateDescriptionShort')]
       switch (val) {
-        case "delete":
+        case "deleteTemplate":
+          this.$emit("deleteTemplate", {
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+          });
           break;
-        case "update":
+        case "updateTemplate":
+          this.$emit("updateTemplate", {
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+            versionCount,
+            creator: currentObj.creator,
+            description,
+            currentObj,
+          });
           break;
-        case "add":
+        case "addContractTemplateVersion":
+          this.$emit("addContractTemplateVersion",{
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+            versionCount,
+            creator: currentObj.creator,
+            description,
+            currentObj,
+          })
           break;
-        case "view":
+        case "viewContractTemplateVersion":
+          this.$emit("viewContractTemplateVersion",{
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+            versionCount,
+            creator: currentObj.creator,
+            description,
+            currentObj,
+          })
           break;
         default:
           break;
@@ -78,15 +125,16 @@ export default {
         this.$t("table.templateVisibility"),
         this.$t("table.templateVersionCount"),
       ],
-      tableData: this.propTableData,
     };
   },
   computed: {
     initTableData: {
       get() {
+        let tableData = this.propTableData;
         let drawList = [];
+        console.log(tableData);
 
-        this.tableData.forEach((obj, index) => {
+        tableData.forEach((obj, index) => {
           let newObj = {};
           Object.keys(obj.data).forEach((key, index) => {
             if (key == this.$t("table.templateCreatorShort")) {
@@ -97,11 +145,15 @@ export default {
               newObj[key] = obj.data[key];
             }
           });
+
           newObj[this.$t("table.templateName")] = obj.templateName;
+          newObj[this.$t("table.templateOperation")] = obj.navList;
           drawList.push(newObj);
         });
-
-        return drawList;
+        return {
+          drawList,
+          tableData,
+        };
       },
     },
   },
@@ -121,5 +173,17 @@ export default {
 
 .operation-container ul li:nth-child(1) {
   color: red;
+}
+
+.operationItems {
+  border: none;
+  padding: 0;
+  font-size: 8px;
+  font-weight: 500;
+  background-color: transparent !important;
+}
+
+.operationItems:hover {
+  color: initial;
 }
 </style>
