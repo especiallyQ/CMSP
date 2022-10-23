@@ -7,6 +7,9 @@
           @toggleViewModeFn="toggleViewModeFn"
           :propCreateBtnShow="createBtnShow"
           @click="createContract"
+          @search="search"
+          v-bind:creator.sync="requiredData.creator"
+          v-bind:templateName.sync="requiredData.templateName"
         />
         <transition name="fade-alert" mode="out-in" appear>
           <div v-if="toggleViewMode" key="largeView">
@@ -42,7 +45,13 @@
             </ul>
           </div>
           <div v-else key="smallView">
-            <SmallView :propTableData="contractTemplateList.newDataList" />
+            <SmallView
+              :propTableData="contractTemplateList.newDataList"
+              @deleteTemplate="deleteTemplate"
+              @updateTemplate="updateTemplate"
+              @addContractTemplateVersion="addContractTemplateVersion"
+              @viewContractTemplateVersion="viewContractTemplateVersion"
+            />
           </div>
         </transition>
         <PaginationView
@@ -70,7 +79,7 @@
     <el-dialog
       :title="dialog.title"
       class="dialog"
-      :visible.sync="dialog.dialogShow"
+      :visible="dialog.dialogShow"
       width="30%"
       center
       :before-close="beforeCloseDialog"
@@ -128,12 +137,89 @@
         </p>
       </div>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="updateTemplateSelectBtn($event, false)"
-          >取 消</el-button
+        <el-button @click="updateTemplateSelectBtn($event, false)">{{
+          this.$t("text.cancel")
+        }}</el-button>
+        <el-button
+          type="primary"
+          @click="updateTemplateSelectBtn($event, true)"
+          >{{ this.$t("text.sure") }}</el-button
         >
-        <el-button type="primary" @click="updateTemplateSelectBtn($event, true)"
-          >确 定</el-button
-        >
+      </span>
+    </el-dialog>
+
+    <el-dialog
+      :title="this.$t('contracts.contractTemplateVersionAddText')"
+      class="dialog"
+      :visible="addDialog.flag"
+      width="30%"
+      :modal="true"
+      center
+      :before-close="beforeCloseDialog2"
+      :close-on-click-modal="false"
+    >
+      <div class="dialog-body">
+        <p>
+          <span style="color: red">*</span
+          ><span class="dialog-line-title">{{
+            this.$t("contracts.contractTemplateVersion")
+          }}</span
+          ><el-input
+            @blur="valiAddData($event, 'inputContractTemplateVersion')"
+            v-model="addFileData.templateVersion"
+            :placeholder="this.$t('contracts.inputContractTemplateVersion')"
+          ></el-input>
+          <span class="warning">
+            <div>
+              {{ addDialog.templateVersionWarn }}
+            </div>
+          </span>
+        </p>
+        <p>
+          <span class="dialog-line-title">{{
+            this.$t("contracts.contractFileUpload")
+          }}</span>
+
+          <el-upload
+            class="uploadFile"
+            :file-list="uploadFileConfig.fileList"
+            action=""
+            ref="upload"
+            :auto-upload="false"
+            :on-exceed="uploadExceed"
+            :before-upload="beforeUpload"
+            :limit="uploadFileConfig.fileLimit"
+          >
+            <el-button size="small" type="primary">{{
+              this.$t("text.upLoadFile")
+            }}</el-button>
+            <div slot="tip" class="el-upload__tip tip2">
+              {{ this.$t("contracts.contractFileUploadDesc") }}
+            </div>
+          </el-upload>
+        </p>
+        <p>
+          <span
+            class="
+              dialog-line-title dialog-line-title-contractTemplateDescription
+            "
+            >{{ this.$t("contracts.contractTemplateDescription") }}</span
+          ><el-input
+            type="textarea"
+            :rows="5"
+            resize="none"
+            v-model="addFileData.description"
+            :placeholder="this.$t('contracts.inputContractTemplateDescription')"
+          ></el-input>
+        </p>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="addDialogSelectBtn($event, false)">{{
+          this.$t("text.cancel")
+        }}</el-button>
+        <el-button type="primary" @click="addDialogSelectBtn($event, true)">{{
+          this.$t("text.sure")
+        }}</el-button>
       </span>
     </el-dialog>
   </div>
@@ -155,11 +241,10 @@ import {
   deleteContractTemplate,
   addContractTemplate,
   modifyContractTemplate,
+  addContractTemplateVersion,
 } from "@/util/api";
 import { chooseLang } from "@/util/errcode";
-import { getDate } from "@/util/util";
-
-import { rgb } from "@/util/util";
+import { getDate, JSONSwitchFormData, rgb } from "@/util/util";
 
 export default {
   name: "contractTemplate",
@@ -225,6 +310,25 @@ export default {
       versionList: [{ 0: "all" }, { 1: "group" }, { 2: "owner" }],
       updateTemplateNameWarn: "",
       updateTemplateVersionWarn: "",
+      addFileData: {
+        templateId: "",
+        templateVersion: "",
+        templateName: "",
+        description: "",
+        visibility: "",
+        uploadFile: null,
+        lastVersion: "",
+        templateSource: "",
+      },
+      addDialog: {
+        flag: false,
+        templateVersionWarn: "",
+      },
+      uploadFileConfig: {
+        fileType: ["zip"],
+        fileLimit: 1,
+        fileList: [],
+      },
     };
   },
   computed: {
@@ -343,6 +447,7 @@ export default {
             obj.accountGroupName = data[i].accountGroupName || "";
             obj.accountGroupId = data[i].accountGroupId || "";
             obj.createTime = data[i].createTime || "";
+            obj.visibility = data[i].visibility || 0;
 
             //i18n转换
             for (let key in data[i]) {
@@ -382,7 +487,7 @@ export default {
         } catch (e) {}
       },
       set() {
-        return {}
+        return {};
       },
     },
     originVisibilityId: {
@@ -398,8 +503,130 @@ export default {
         }
       },
     },
+    templateVersionList: {
+      get() {
+        return this.$store.state.contractTemplate.templateVersionList.data;
+      },
+    },
   },
   methods: {
+    search(e) {
+      this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+        requestData: this.requestData,
+        requiredData: this.requiredData,
+      });
+    },
+    valiAddData(e, key) {
+      switch (key) {
+        case "inputContractTemplateVersion":
+          if (!this.addFileData.templateVersion) {
+            this.addDialog.templateVersionWarn = this.$t(
+              "contracts.selectContractTemplateVersion"
+            );
+          } else {
+            if (!this.valiVersion(this.addFileData.templateVersion)) {
+              this.addDialog.templateVersionWarn = this.$t(
+                "contracts.inputRuleVersion"
+              );
+            } else {
+              this.addDialog.templateVersionWarn = "";
+            }
+          }
+          break;
+        default:
+          break;
+      }
+    },
+    async addDialogSelectBtn(e, flag) {
+      if (flag) {
+        this.valiAddData(e, "inputContractTemplateVersion");
+        try {
+          if (!this.addDialog.templateVersionWarn) {
+            this.$refs.upload.submit();
+
+            this.addFileData.lastVersion = this.templateVersionList[0]
+              ? this.templateVersionList[0].templateVersion
+              : 0;
+
+            let formDate = JSONSwitchFormData(this.addFileData);
+            const { data } = await addContractTemplateVersion(formDate);
+            console.log(data);
+            if (data.code == 0) {
+              this.$message({
+                message: this.$t("text.updateSuccessMsg"),
+                type: "success",
+              });
+
+              this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                requestData: this.requestData,
+                requiredData: {
+                  creator: "",
+                  templateName: "",
+                },
+              });
+              this.addDialog.flag = false;
+              this.addFileData = {
+                templateId: "",
+                templateVersion: "",
+                templateName: "",
+                description: "",
+                visibility: "",
+                uploadFile: null,
+                lastVersion: "",
+                templateSource: "",
+              };
+              this.addDialog.templateVersionWarn = "";
+            } else {
+              this.$message.error({
+                message: chooseLang(data.code),
+              });
+            }
+          }
+        } catch (e) {}
+      } else {
+        this.addFileData = {
+          templateId: "",
+          templateVersion: "",
+          templateName: "",
+          description: "",
+          visibility: "",
+          uploadFile: null,
+          lastVersion: "",
+          templateSource: "",
+        };
+        this.addDialog.flag = false;
+        this.addDialog.templateVersionWarn = "";
+      }
+    },
+    beforeUpload(file) {
+      this.addFileData.uploadFile = file;
+      if (file.type) {
+        let ext = file.name.replace(/.+\./g, "").toLowerCase();
+        if (this.uploadFileConfig.fileType.includes(ext)) {
+          return true;
+        } else {
+          this.$message.error({
+            message: this.$t("contracts.uploadFileInvalid"),
+          });
+          return false;
+        }
+      } else {
+        this.$message.error({
+          message: this.$t("contracts.uploadFileInvalid"),
+        });
+        return false;
+      }
+    },
+    uploadExceed(files, fileList) {
+      this.$message({
+        message: this.$t("text.oneUploadFileTip"),
+        type: "warning",
+      });
+    },
+    valiVersion(version) {
+      let re = /([1-9][0-9]{0,1})(\.([0-9]{1,3}))*/g;
+      return version.match(re)[0] == version;
+    },
     valiData(e, key) {
       switch (key) {
         case "inputContractTemplateName":
@@ -463,12 +690,14 @@ export default {
       return arr.length;
     },
     viewContractTemplateVersion(
-      id,
+      {
+        id,
       templateName,
       versionCount,
       creator,
       description,
       currentObj
+      }
     ) {
       this.drawer.showFlag = !this.drawer.showFlag;
       this.drawer.title = templateName;
@@ -481,7 +710,7 @@ export default {
         templateId: id,
       });
     },
-    async deleteTemplate(id, templateName) {
+    async deleteTemplate({ id, templateName }) {
       this.$confirm(
         `${this.$t("text.confirmDelete")}${this.$t(
           "title.contractTemplate"
@@ -511,14 +740,14 @@ export default {
         })
         .catch(() => {});
     },
-    updateTemplate(
+    updateTemplate({
       id,
       templateName,
       versionCount,
       creator,
       description,
-      currentObj
-    ) {
+      currentObj,
+    }) {
       this.dialog.title = this.$t("contracts.contractTemplateModifyText");
       this.dialog.dialogShow = true;
 
@@ -569,9 +798,9 @@ export default {
             this.updateTemplateVersionWarn = "";
 
             this.getContractTemplateList();
-          } else if (data.code == 202145) {
+          } else {
             this.$message.error({
-              message: chooseLang("202145"),
+              message: chooseLang(data.code),
             });
           }
         } catch (e) {
@@ -612,11 +841,11 @@ export default {
             this.dialog.dialogShow = false;
             this.updateTemplateNameWarn = "";
             this.updateTemplateVersionWarn = "";
-            
+
             this.getContractTemplateList();
           } else {
             this.$message.error({
-              message: this.$t("text.systemError"),
+              message: chooseLang(data.code),
             });
           }
         } catch (e) {
@@ -653,6 +882,22 @@ export default {
         this.updateTemplateVersionWarn = "";
       }
     },
+    addContractTemplateVersion({
+      id,
+      templateName,
+      versionCount,
+      creator,
+      description,
+      currentObj,
+    }) {
+      this.addDialog.flag = true;
+      this.addFileData.templateId = id;
+      this.addFileData.visibility = currentObj.visibility;
+
+      this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+        templateId: id,
+      });
+    },
     beforeCloseDialog() {
       this.dialog.title = "";
       this.dialog.dialogShow = false;
@@ -662,6 +907,20 @@ export default {
       this.updateOriginData.permisseSelectValue = "";
       this.updateOriginData.templateName = "";
       this.updateOriginData.description = "";
+    },
+    beforeCloseDialog2() {
+      this.addFileData = {
+        templateId: "",
+        templateVersion: "",
+        templateName: "",
+        description: "",
+        visibility: "",
+        uploadFile: null,
+        lastVersion: "",
+        templateSource: "",
+      };
+      this.addDialog.flag = false;
+      this.addDialog.templateVersionWarn = "";
     },
     navBtnClick(
       e,
@@ -677,26 +936,39 @@ export default {
       switch (key) {
         case "viewContractTemplateVersion":
           this.viewContractTemplateVersion(
-            id,
+            {
+              id,
             templateName,
             versionCount,
             creator,
             description,
             currentObj
+            }
           );
           break;
         case "deleteTemplate":
-          this.deleteTemplate(id, templateName);
+          this.deleteTemplate({ id, templateName });
           break;
         case "updateTemplate":
-          this.updateTemplate(
+          this.updateTemplate({
             id,
             templateName,
             versionCount,
             creator,
             description,
-            currentObj
-          );
+            currentObj,
+          });
+          break;
+        case "addContractTemplateVersion":
+          this.addContractTemplateVersion({
+            id,
+            templateName,
+            versionCount,
+            creator,
+            description,
+            currentObj,
+          });
+          break;
         default:
           break;
       }
@@ -773,6 +1045,10 @@ export default {
   min-width: 1000px;
 }
 
+.dialog >>> .el-dialog--center {
+  width: 500px !important;
+}
+
 .dialog-body {
   width: 100%;
 }
@@ -809,5 +1085,31 @@ export default {
   font-size: 13px;
   color: red;
   height: 20px;
+}
+
+.warning {
+  position: absolute;
+  width: 100px;
+  bottom: 10%;
+  left: 100px;
+  text-align: center;
+  font-size: 13px;
+  color: red;
+  height: 20px;
+}
+
+.uploadFile {
+  position: relative;
+}
+
+.uploadFile .tip2 {
+  position: absolute;
+  width: 10vw;
+  top: -7px;
+  left: 95px;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

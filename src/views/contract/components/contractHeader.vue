@@ -3,15 +3,19 @@
     <div class="clearfix-container-left">
       <input
         type="text"
+        v-model="creator"
         class="search searchCreater"
+        @change="createrChange"
         :placeholder="searchCreater()"
       />
       <input
         type="text"
+        v-model="templateName"
+        @change="contractTemplateChange"
         :placeholder="searchContractTemplate()"
         class="search searchContractTemplate"
       />
-      <el-button class="searchButton" icon="el-icon-search"></el-button>
+      <el-button class="searchButton" icon="el-icon-search" @click="onClick2($event)"></el-button>
     </div>
     <div class="clearfix-container-right">
       <div>
@@ -62,6 +66,8 @@ export default {
       isCollapse: true,
       changeAction: true,
       contractTemplateAddText: "contractTemplateAddText",
+      creator:"",
+      templateName:""
     };
   },
   computed: {
@@ -72,6 +78,12 @@ export default {
     },
   },
   methods: {
+    createrChange(){
+      this.$emit("update:creator",this.creator)
+    },
+    contractTemplateChange(){
+      this.$emit("update:templateName",this.templateName)
+    },
     searchCreater() {
       return this.$t("contracts.creatorSearch");
     },
@@ -85,6 +97,9 @@ export default {
     onClick(e) {
       this.$emit("click", e);
     },
+    onClick2(e) {
+      this.$emit("search", e);
+    }
   },
 };
 </script>

@@ -334,7 +334,7 @@ export function JSONSwitchFormData(JSONData) {
                 JSONData[key].forEach((val) => {
                     formData.append(key,val)
                 })
-            }else if(JSONData[key] instanceof Object){
+            }else if(Object.prototype.toString.call(JSONData[key]) == '[object Object]'){
                 switchFn(JSONData[key])
             }else {
                 formData.set(key, JSONData[key])

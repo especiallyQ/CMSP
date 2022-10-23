@@ -1,6 +1,6 @@
 <template>
   <div class="smallView">
-    <el-table :data="initTableData" style="width: 100%" align="center">
+    <el-table :data="initTableData.drawList" style="width: 100%" align="center">
       <el-table-column
         align="center"
         v-for="(label, index) in titleList"
@@ -34,6 +34,7 @@
                   class="operationItems"
                   :style="{ color: obj.propColor }"
                   :disabled="!obj.propAction"
+                  @click="operationContract($event, obj.name, scope)"
                   >{{ $t(`contracts.${obj.name}`) }}</el-button
                 >
               </li>
@@ -57,15 +58,59 @@ export default {
     },
   },
   methods: {
+    findCurrentObj(templateName) {
+      let currentObj = this.initTableData.tableData.filter((obj) => {
+        return obj.templateName == templateName;
+      });
+
+      return currentObj;
+    },
+    // deleteTemplate(templateName){
+    //   let currentObj =  this.findCurrentObj(templateName)
+    // },
     operationContract(e, val, scope) {
+      let currentObj = this.findCurrentObj(
+        scope.row[this.$t("table.templateName")]
+      )[0];
+      console.log(currentObj);
+      let versionCount = currentObj.data[this.$t('table.templateVersionCount')]
+      let description = currentObj.data[this.$t('table.templateDescriptionShort')]
       switch (val) {
-        case "delete":
+        case "deleteTemplate":
+          this.$emit("deleteTemplate", {
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+          });
           break;
-        case "update":
+        case "updateTemplate":
+          this.$emit("updateTemplate", {
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+            versionCount,
+            creator: currentObj.creator,
+            description,
+            currentObj,
+          });
           break;
-        case "add":
+        case "addContractTemplateVersion":
+          this.$emit("addContractTemplateVersion",{
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+            versionCount,
+            creator: currentObj.creator,
+            description,
+            currentObj,
+          })
           break;
-        case "view":
+        case "viewContractTemplateVersion":
+          this.$emit("viewContractTemplateVersion",{
+            id: currentObj.id,
+            templateName: currentObj.templateName,
+            versionCount,
+            creator: currentObj.creator,
+            description,
+            currentObj,
+          })
           break;
         default:
           break;
@@ -85,8 +130,9 @@ export default {
   computed: {
     initTableData: {
       get() {
-        let tableData = this.propTableData
+        let tableData = this.propTableData;
         let drawList = [];
+        console.log(tableData);
 
         tableData.forEach((obj, index) => {
           let newObj = {};
@@ -99,12 +145,15 @@ export default {
               newObj[key] = obj.data[key];
             }
           });
+
           newObj[this.$t("table.templateName")] = obj.templateName;
           newObj[this.$t("table.templateOperation")] = obj.navList;
           drawList.push(newObj);
         });
-
-        return drawList;
+        return {
+          drawList,
+          tableData,
+        };
       },
     },
   },

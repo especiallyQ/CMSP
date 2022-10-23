@@ -31,7 +31,7 @@
         <ContractDrawerCard
           v-for="obj in templateVersionList"
           :key="obj.id"
-          :propRemark="description"
+          :propRemark="obj.description ? obj.description : $t('text.noRemark')"
         >
           <template v-slot:checkBox>
             <el-checkbox :label="obj" :disabled="!isCreator"
@@ -59,7 +59,7 @@
         :style="{ display: !isCreator ? 'none' : 'block' }"
         class="addContractTemplateVersion"
         key="addContractTemplateVersion"
-        @click="addContractVersion($event)"
+        @click="addContractVersion($event, currentObj, templateVersionList[0])"
         >{{ $t("contracts.addContractTemplateVersion") }}</el-button
       >
 
@@ -138,7 +138,9 @@
           <p
             v-if="
               dialog.title ==
-              this.$t('contracts.contractTemplateVersionModifyText')
+                this.$t('contracts.contractTemplateVersionModifyText') ||
+              dialog.title ==
+                this.$t('contracts.contractTemplateVersionAddText')
             "
           >
             <span class="dialog-line-title">{{
@@ -148,7 +150,7 @@
             <el-upload
               class="uploadFile"
               :file-list="uploadFileConfig.fileList"
-              action
+              action=""
               ref="upload"
               :auto-upload="false"
               :on-remove="uploadRemove"
@@ -170,7 +172,9 @@
             class="el-upload__tip tip1"
             v-if="
               dialog.title ==
-              this.$t('contracts.contractTemplateVersionModifyText')
+                this.$t('contracts.contractTemplateVersionModifyText') ||
+              dialog.title ==
+                this.$t('contracts.contractTemplateVersionAddText')
             "
           >
             {{ this.$t("contracts.inputDiffContractTemplateVersionTip") }}
@@ -194,12 +198,32 @@
         </div>
         <span slot="footer" class="dialog-footer">
           <el-button @click="dialogSelectBtn($event, false, dialog.title)"
-            >取 消</el-button
+            >{{
+            this.$t("text.cancel")
+          }}</el-button
           >
           <el-button
             type="primary"
             @click="dialogSelectBtn($event, true, dialog.title)"
-            >确 定</el-button
+            >{{ this.$t("text.sure") }}</el-button
+          >
+        </span>
+      </el-dialog>
+
+      <el-dialog
+        :visible.sync="deleteDialog.flag"
+        width="30%"
+        :modal="false"
+      >
+        <span>{{ deleteDialog.title }}</span>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="deleteDialogFn($event, false)">{{
+            this.$t("text.cancel")
+          }}</el-button>
+          <el-button
+            type="primary"
+            @click="deleteDialogFn($event, true)"
+            >{{ this.$t("text.sure") }}</el-button
           >
         </span>
       </el-dialog>
@@ -223,6 +247,7 @@ import {
   batchDeleteContractTemplateVersion,
   deleteContractTemplateVersion,
   modifyContractTemplateVersion,
+  addContractTemplateVersion,
 } from "@/util/api";
 import url from "@/util/url";
 
@@ -284,6 +309,11 @@ export default {
         title: "",
         versionDisable: false,
       },
+      deleteDialog: {
+        flag: false,
+        title: "",
+        id: 0,
+      },
       uploadFileConfig: {
         fileType: ["zip"],
         fileLimit: 1,
@@ -294,14 +324,24 @@ export default {
         id: "",
         templateId: "",
         templateVersion: "",
+        templateName: "",
         templateSource: "",
         creatorId: "",
         createTime: "",
         relatedFlag: "",
-        templateName: "",
         templateCreatorId: "",
         tick: false,
-        uploadFile: "",
+        uploadFile: null,
+      },
+      addFileData: {
+        templateId: "",
+        templateVersion: "",
+        templateName: "",
+        description: "",
+        visibility: "",
+        uploadFile: null,
+        lastVersion: "",
+        templateSource: "",
       },
     };
   },
@@ -411,12 +451,12 @@ export default {
     },
   },
   methods: {
-    uploadFileFn(itme) {
-      this.uploadFileData.uploadFile = itme.file;
-      this.uploadFileData.templateVersion = vObj.templateVersion;
-    },
     beforeUpload(file) {
-      console.log(file, 123);
+      this.uploadFileData.uploadFile = file;
+      this.uploadFileData.templateVersion = this.copyReqData.templateVersion;
+      this.uploadFileData.templateSource = "";
+
+      this.addFileData.uploadFile = file;
       if (file.type) {
         let ext = file.name.replace(/.+\./g, "").toLowerCase();
         if (this.uploadFileConfig.fileType.includes(ext)) {
@@ -440,16 +480,7 @@ export default {
         type: "warning",
       });
     },
-    uploadChange(file, fileList) {
-      // console.log(file, fileList, "change");
-      this.uploadFileConfig.fileList.push(file);
-    },
     uploadRemove(file) {
-      this.uploadFileConfig.fileList = this.uploadFileConfig.fileList.filter(
-        (obj) => {
-          return obj.uid !== file.uid;
-        }
-      );
       this.dialog.versionDisable = false;
     },
     valiVersion(version) {
@@ -476,7 +507,8 @@ export default {
           } else {
             if (
               this.copyReqData.templateVersion ==
-              this.uploadFileData.templateVersion
+                this.uploadFileData.templateVersion &&
+              !this.dialog.versionDisable
             ) {
               this.copyTemplateVersionWarn = this.$t(
                 "contracts.inputDiffContractTemplateVersion"
@@ -490,6 +522,20 @@ export default {
             }
           }
           break;
+        case "inputContractTemplateVersion2":
+          if (!this.copyReqData.templateVersion) {
+            this.copyTemplateVersionWarn = this.$t(
+              "contracts.selectContractTemplateVersion"
+            );
+          } else {
+            if (!this.valiVersion(this.copyReqData.templateVersion)) {
+              this.copyTemplateVersionWarn = this.$t(
+                "contracts.inputRuleVersion"
+              );
+            } else {
+              this.copyTemplateVersionWarn = "";
+            }
+          }
         default:
           break;
       }
@@ -553,25 +599,121 @@ export default {
             break;
           case this.$t("contracts.contractTemplateVersionModifyText"):
             this.valiData(e, "inputContractTemplateVersion");
-            if (!this.copyTemplateVersionWarn) {
-              let file = this.uploadFileConfig.fileList[0].raw;
-              let reader = new FileReader();
-              reader.readAsText(new Blob([file]));
-              
+            try {
+              if (!this.copyTemplateVersionWarn) {
+                await this.$refs.upload.submit();
 
+                this.uploadFileData.templateVersion =
+                  this.copyReqData.templateVersion;
 
-              this.uploadFileData.templateVersion =
-                this.copyReqData.templateVersion;
-              this.uploadFileData.templateSource = "";
-              reader.onload = async () => {
-                // this.uploadFileData.uploadFile = reader.result ? reader.result : null
+                this.uploadFileData.description = this.copyReqData.description;
+
+                if (
+                  this.uploadFileData.templateVersion !==
+                  this.uploadFileData.lastVersion
+                ) {
+                  this.uploadFileData.templateSource = this.uploadFileData
+                    .uploadFile
+                    ? this.uploadFileData.templateSource
+                    : "";
+                }
+
                 let formDate = JSONSwitchFormData(this.uploadFileData);
-                formDate.set("uploadFile",file)
+
                 const { data } = await modifyContractTemplateVersion(formDate);
-                this.uploadFileConfig.fileList = [];
-                console.log(data);
+
+                if (data.code == 0) {
+                  this.$message({
+                    message: this.$t("text.updateSuccessMsg"),
+                    type: "success",
+                  });
+
+                  this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                    requestData: this.requestDataProvide,
+                    requiredData: {
+                      creator: "",
+                      templateName: "",
+                    },
+                  });
+                  this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+                    templateId: this.uploadFileData.templateId,
+                  });
+                  this.dialog.title = "";
+
+                  this.uploadFileData = {
+                    lastVersion: "",
+                    id: "",
+                    templateId: "",
+                    templateVersion: "",
+                    templateSource: "",
+                    creatorId: "",
+                    createTime: "",
+                    relatedFlag: "",
+                    templateName: "",
+                    templateCreatorId: "",
+                    tick: false,
+                    uploadFile: null,
+                  };
+                  return (this.dialog.dialogShow = false);
+                } else {
+                  this.$message.error({
+                    message: chooseLang(data.code),
+                  });
+                }
+              }
+            } catch (e) {
+              this.$message({
+                message: e.msg || e.message,
+                type: "warning",
+              });
+            }
+            break;
+          case this.$t("contracts.contractTemplateVersionAddText"):
+            this.valiData(e, "inputContractTemplateVersion2");
+            if (!this.copyTemplateVersionWarn) {
+              try {
+                await this.$refs.upload.submit();
+
+                this.addFileData.description = this.copyReqData.description;
+                this.addFileData.templateVersion =
+                  this.copyReqData.templateVersion;
+
+
+                let formDate = JSONSwitchFormData(this.addFileData);
+                const { data } = await addContractTemplateVersion(formDate);
+
+                if (data.code == 0) {
+                  this.$message({
+                    message: this.$t("text.updateSuccessMsg"),
+                    type: "success",
+                  });
+
+                  this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                    requestData: this.requestDataProvide,
+                    requiredData: {
+                      creator: "",
+                      templateName: "",
+                    },
+                  });
+                  this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+                    templateId: this.addFileData.templateId,
+                  });
+                  this.dialog.title = "";
+
+                  return (this.dialog.dialogShow = false);
+                } else {
+                  this.$message.error({
+                    message: chooseLang(data.code),
+                  });
+                }
+              } catch (e) {
+                this.$message({
+                  message: e.msg || e.message,
+                  type: "warning",
+                });
               }
             }
+            break;
           default:
             break;
         }
@@ -647,7 +789,6 @@ export default {
         "contracts.contractTemplateVersionModifyText"
       );
 
-      console.log(obj, vObj);
       let fileName = vObj.templateSource.replace(/.+\//g, "");
       this.uploadFileConfig.fileList = [
         {
@@ -689,92 +830,139 @@ export default {
     editCode(Obj, vObj) {
       this.$router.push(`/editor/${vObj.templateId}/${vObj.id}/00`);
     },
-    //删除单一版本
-    async deleteVersion(id, obj) {
-      console.log(obj);
-      try {
-        const { data } = await deleteContractTemplateVersion(id);
+    async deleteDialogFn(e, flag) {
+      if (flag) {
+        if (this.deleteDialog.id) {
+          try {
+            const { data } = await deleteContractTemplateVersion(this.deleteDialog.id);
 
-        if (data.code == "202041") {
-          this.$message({
-            message: chooseLang("202041"),
-            type: "warning",
-          });
+            if (data.code == "202041") {
+              this.$message({
+                message: chooseLang("202041"),
+                type: "warning",
+              });
+            } else {
+              this.$message({
+                message: this.$t("text.resetSuccess"),
+                type: "success",
+              });
+
+              //重新获取模板列表以及版本列表，重置多选按钮相关数据
+              this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                requestData: this.requestDataProvide,
+                requiredData: {
+                  creator: "",
+                  templateName: "",
+                },
+              });
+              this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+                templateId: this.currentObj.id,
+              });
+
+              this.checkAll = false;
+              this.checkedList = [];
+              this.isIndeterminate = false;
+              this.checkNum = 0;
+
+              this.deleteDialog.id = "";
+              this.deleteDialog.flag = false;
+            }
+          } catch (e) {}
         } else {
-          this.$message({
-            message: this.$t("text.resetSuccess"),
-            type: "success",
-          });
+          let checkedLen = this.checkedList.length;
+          let deleteIdList = [];
+          if (checkedLen) {
+            //删除后重新获取versionList
+            let templateId = this.checkedList[0].templateId;
+            for (let i = 0; i < checkedLen; i++) {
+              deleteIdList.push(this.checkedList[i].id);
+            }
+            let requestStr = deleteIdList.join(",");
 
-          //重新获取模板列表以及版本列表，重置多选按钮相关数据
-          this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
-            requestData: this.requestDataProvide,
-            requiredData: {
-              creator: "",
-              templateName: "",
-            },
-          });
-          this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
-            templateId: obj.id,
-          });
+            try {
+              const { data } = await batchDeleteContractTemplateVersion(
+                requestStr
+              );
 
-          this.checkAll = false;
-          this.checkedList = [];
-          this.isIndeterminate = false;
-          this.checkNum = 0;
+              if (data.code == "202041") {
+                this.$message({
+                  message: chooseLang("202041"),
+                  type: "warning",
+                });
+              } else {
+                this.$message({
+                  message: this.$t("text.resetSuccess"),
+                  type: "success",
+                });
+
+                //重新获取模板列表以及版本列表，重置多选按钮相关数据
+                this.checkedList = [];
+                this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
+                  requestData: this.requestDataProvide,
+                  requiredData: {
+                    creator: "",
+                    templateName: "",
+                  },
+                });
+                this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
+                  templateId,
+                });
+
+                this.checkAll = false;
+                this.checkedList = [];
+                this.isIndeterminate = false;
+                this.checkNum = 0;
+
+                this.deleteDialog.flag = false;
+              }
+            } catch (e) {}
+          }
         }
-      } catch (e) {}
+      } else {
+        this.deleteDialog.id = "";
+        this.deleteDialog.flag = false;
+      }
+    },
+    //删除单一版本
+    async deleteVersion(id) {
+      this.deleteDialog.flag = true;
+      this.deleteDialog.id = id;
+      this.deleteDialog.title = `${this.$t("text.confirmDelete")}${this.$t(
+        "contracts.contractTemplateVersion"
+      )}?`;
     },
     //批量删除
     async batchDeleteVersion() {
-      let checkedLen = this.checkedList.length;
-      let deleteIdList = [];
-      if (checkedLen) {
-        //删除后重新获取versionList
-        let templateId = this.checkedList[0].templateId;
-        for (let i = 0; i < checkedLen; i++) {
-          deleteIdList.push(this.checkedList[i].id);
-        }
-        let requestStr = deleteIdList.join(",");
-
-        try {
-          const { data } = await batchDeleteContractTemplateVersion(requestStr);
-
-          if (data.code == "202041") {
-            this.$message({
-              message: chooseLang("202041"),
-              type: "warning",
-            });
-          } else {
-            this.$message({
-              message: this.$t("text.resetSuccess"),
-              type: "success",
-            });
-
-            //重新获取模板列表以及版本列表，重置多选按钮相关数据
-            this.checkedList = [];
-            this.$store.dispatch(dispatchKeys.CONTRACT_TEMPLATE_LIST, {
-              requestData: this.requestDataProvide,
-              requiredData: {
-                creator: "",
-                templateName: "",
-              },
-            });
-            this.$store.dispatch(dispatchKeys.TEMPLATE_VERSION_LIST, {
-              templateId,
-            });
-
-            this.checkAll = false;
-            this.checkedList = [];
-            this.isIndeterminate = false;
-            this.checkNum = 0;
-          }
-        } catch (e) {}
+      if(this.checkedList.length > 0){
+        this.deleteDialog.flag = true;
+        this.deleteDialog.title = `${this.$t("text.confirmDelete")}${this.$t(
+        "contracts.contractTemplateVersion"
+      )}?`;
       }
     },
     //添加版本
-    addContractVersion() {
+    addContractVersion(e, obj, vObj) {
       // addContractTemplateVersion
+      this.uploadFileConfig.fileList = [];
+
+      this.copyReqData = {
+        id: "",
+        templateId: "",
+        templateVersion: "",
+        description: "",
+        templateName: "",
+        templateSource: "",
+      };
+
+      this.dialog.versionDisable = false;
+
+      this.addFileData.lastVersion = vObj ? vObj.templateVersion : 0;
+      this.addFileData.templateId = obj.id;
+      this.addFileData.templateName = obj.templateName;
+      this.addFileData.visibility = obj.visibility;
+
+      this.dialog.title = this.$t("contracts.contractTemplateVersionAddText");
+      this.dialog.dialogShow = !this.dialog.dialogShow;
     },
     //根据按钮传来的name决定触发对应事件
     async drawerNavBtn(e, id, name, Obj, vObj) {

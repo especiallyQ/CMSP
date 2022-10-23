@@ -1,7 +1,7 @@
 <!--
  * @Author: chengjiang_09
  * @Date: 2022-10-13 14:36:34
- * @LastEditTime: 2022-10-20 11:28:11
+ * @LastEditTime: 2022-10-23 16:50:55
 -->
 <template>
   <div class="paginationView">
@@ -12,6 +12,7 @@
         :current-page="currentPage"
         layout="total, sizes, prev, pager, next, jumper"
         :total="totalNum"
+        :page-sizes="pageSizes"
       >
       </el-pagination>
     </div>

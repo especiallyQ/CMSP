@@ -158,7 +158,6 @@ export default {
               this.remark.key = key;
               this.remark.name = remarkObj[key][0];
               this.remark.all = remarkObj[key];
-              console.log(this.remark);
             }
           } else {
             obj.key = key;
