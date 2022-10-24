@@ -15,6 +15,8 @@ const message = resolve => require(['@/views/noticeCenter/index'], resolve);
 const backlog = resolve => require(['@/views/backlog/index'], resolve);
 const contractTemplate = resolve => require(['@/views/contract/index'], resolve);
 const editorView = resolve => require(['@/views/contract/editorView.vue'], resolve)
+const depository = resolve => require(['@/views/depository/depository'], resolve)
+const depositoryHis = resolve => require(['@/views/depository/depositoryHis'], resolve)
 
 Vue.use(Router);
 const routes = [{
@@ -53,6 +55,45 @@ const routes = [{
 }, {
     path: '/',
     component: main,
+    name: 'main',
+    nameKey: 'contractTemplate',
+    leaf: true,
+    menuShow: true,
+    iconCls: 'cmsp-icon-qukuailian4 sidebar-icon',
+    children: [{
+        path: '/contractTemplate',
+        component: contractTemplate,
+        name: 'contractTemplate',
+        nameKey: 'contractTemplate',
+        menuShow: true,
+        meta: { requireAuth: false },
+    }, {
+        path: '/editor/:templateId/:versionId/:permissionId',
+        component: editorView,
+        name: 'cmspEditor',
+        nameKey: 'cmspEditor',
+        menuShow: true,
+        meta: { requireAuth: false }
+    }]
+}, {
+    path: '/',
+    name: 'depository',
+    nameKey: 'depositoryTitle',
+    leaf: true,
+    menuShow: true,
+    iconCls: 'ext-icon-baocun sidebar-icon',
+    component: main,
+    children: [
+        {
+            path: '/depository', component: depository, name: 'depositoryList', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+        },
+        {
+            path: '/depositoryHis/:appChainId/:contractNameId/:templateId/:id', component: depositoryHis, name: 'depositoryHis', nameKey: 'depositoryTitle', menuShow: true, meta: { requireAuth: true },
+        },
+    ]
+}, {
+    path: '/',
+    component: main,
     name: 'noticeCenter',
     nameKey: 'noticeCenter',
     leaf: false,
@@ -63,30 +104,7 @@ const routes = [{
     }, {
         path: '/backlog', component: backlog, name: 'backlog', nameKey: 'backlog', menuShow: true, meta: { requireAuth: true }
     }]
-}, {
-    path: '/',
-    component: main,
-    name: 'main',
-    nameKey: 'contractTemplate',
-    leaf: true,
-    menuShow: true,
-    iconCls: 'cmsp-icon-qukuailian4 sidebar-icon',
-    children: [{
-        path: '/contractTemplate', 
-        component: contractTemplate, 
-        name: 'contractTemplate', 
-        nameKey: 'contractTemplate', 
-        menuShow: true, 
-        meta: { requireAuth: false },
-    },{
-        path: '/editor/:templateId/:versionId/:permissionId',
-        component: editorView,
-        name: 'cmspEditor',
-        nameKey: 'cmspEditor',
-        menuShow: true,
-        meta: { requireAuth: false }
-    }]
-}];
+},];
 
 const router = new Router({
     routes

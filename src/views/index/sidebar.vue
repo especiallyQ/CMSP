@@ -115,6 +115,7 @@ export default {
           accountManagement: this.$t("title.accountManagement"),
           noticeCenter: this.$t("title.noticeCenter"),
           contractTemplate: this.$t("title.contractTemplate"),
+          depositoryTitle: this.$t('title.depositoryTitle'),
         }[item.nameKey];
         // 子菜单国际化
         if (item.children) {
@@ -126,7 +127,8 @@ export default {
               message: this.$t("title.message"),
               backlog: this.$t("title.backlog"),
               contractTemplate: this.$t("title.contractTemplate"),
-              cmspEditor:this.$t("title.cmspEditor")
+              cmspEditor:this.$t("title.cmspEditor"),
+              depositoryTitle: this.$t('title.depositoryTitle'),
             }[it.nameKey];
           });
         }
@@ -191,6 +193,7 @@ export default {
             accountManagement: true,
             noticeCenter: true,
             contractTemplate: true,
+            depositoryTitle:true
           }[item.nameKey] || false;
 
         // 子菜单权限
@@ -202,6 +205,7 @@ export default {
                 chainOrgMgmt: true,
                 accountManagement: true,
                 message: true,
+                depositoryTitle:true,
                 backlog: this.role === "PU_Admin",
               }[it.nameKey] || false;
           });
