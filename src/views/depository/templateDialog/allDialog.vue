@@ -421,11 +421,11 @@ export default {
     allDialogTitle() {
       switch (this.flag) {
         case 0:
-          return "录入存证信息";
+          return this.$t("depository.saveDepositoryTitle");
         case 1:
-          return "编辑存证信息";
+          return this.$t("depository.modifyDepositoryTitle");
         case 2:
-          return "数据校验";
+          return this.$t("depository.validate");
       }
     },
   },
