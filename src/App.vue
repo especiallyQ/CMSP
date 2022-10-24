@@ -16,7 +16,7 @@ export default {
             load: this.$root.load
         };
     },
-    methods: {}
+    methods: {},
 };
 </script>
 
